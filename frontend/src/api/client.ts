@@ -8,7 +8,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getStatus = () => json<Status>('/api/status');
 export const startLogin = () =>
-  json<{ qrcode_data: string }>('/api/login/qrcode', { method: 'POST' });
+  json<{ qrcode_data: string; error?: string }>('/api/login/qrcode', { method: 'POST' });
 export const pollLogin = () => json<{ ok: boolean }>('/api/login/poll', { method: 'POST' });
 export const logout = () => json<{ ok: boolean }>('/api/logout', { method: 'POST' });
 export const getQuotes = () => json<Record<string, Quote>>('/api/quotes');

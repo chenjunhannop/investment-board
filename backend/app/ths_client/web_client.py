@@ -73,9 +73,17 @@ class ThsWebClient(ThsAdapter):
         """获取登录二维码数据.
 
         Returns:
-            包含 ``qrcode_data`` 字段的字典；请求失败时字段为空串.
+            包含 ``qrcode_data`` 字段的字典；同花顺接口不可用时返回空二维码并
+            附带 ``error`` 说明（优雅降级，不抛出异常）.
         """
-        data = await self._get_json("/qrcode")
+        try:
+            data = await self._get_json("/qrcode")
+        except Exception as e:
+            logger.warning("获取登录二维码失败（第三方接口可能已变动）: %s", e)
+            return {
+                "qrcode_data": "",
+                "error": f"同花顺接口暂时不可用（{e.__class__.__name__}）",
+            }
         self._pending_qr = data.get("data", {})
         return {"qrcode_data": self._pending_qr.get("qrcode", "")}
 

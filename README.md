@@ -103,6 +103,10 @@ CI（GitHub Actions）会自动执行以上三项。
 界面会提示「自选 / 持仓暂不可用」，健康灯变为异常；登录态会通过 `refresh_session` 保活，
 失效后提示重新扫码。
 
+> **当前已知**（2026-08）：`eq.10jqka.com.cn/qrcode` 登录接口返回 404/403，
+> 扫码登录不可用。点击登录时界面会提示「同花顺接口暂时不可用」而非无响应；
+> 行情（新浪/腾讯）与新闻（东财公告）不受影响。
+
 接口契约与抓包方法见 [docs/ths-reverse-engineering.md](docs/ths-reverse-engineering.md)。
 如你抓包确认了新字段 / 新路径，欢迎提交 PR（指引见该文档）。
 

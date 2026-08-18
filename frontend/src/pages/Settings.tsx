@@ -7,21 +7,31 @@ export default function Settings() {
   const refresh = useApp((s) => s.refresh);
   const [qr, setQr] = useState<string>('');
   const [scanning, setScanning] = useState(false);
+  const [error, setError] = useState<string>('');
   const timer = useRef<number>();
 
   const beginLogin = useCallback(async () => {
-    const r = await startLogin();
-    setQr(r.qrcode_data);
-    setScanning(true);
-    timer.current = window.setInterval(async () => {
-      const res = await pollLogin();
-      if (res.ok) {
-        window.clearInterval(timer.current);
-        setScanning(false);
-        setQr('');
-        await refresh();
+    setError('');
+    try {
+      const r = await startLogin();
+      if (!r.qrcode_data) {
+        setError(r.error || '同花顺接口暂时不可用，请稍后再试');
+        return;
       }
-    }, 2000);
+      setQr(r.qrcode_data);
+      setScanning(true);
+      timer.current = window.setInterval(async () => {
+        const res = await pollLogin();
+        if (res.ok) {
+          window.clearInterval(timer.current);
+          setScanning(false);
+          setQr('');
+          await refresh();
+        }
+      }, 2000);
+    } catch {
+      setError('获取登录二维码失败，请检查后端服务后重试');
+    }
   }, [refresh]);
 
   const doLogout = useCallback(async () => {
@@ -51,6 +61,11 @@ export default function Settings() {
         ) : (
           <>
             <button onClick={beginLogin}>使用同花顺 App 扫码登录</button>
+            {error && (
+              <p className="muted" style={{ color: 'var(--up)' }}>
+                {error}
+              </p>
+            )}
             {qr && (
               <div className="qr-box">
                 <p className="muted">请在手机同花顺 App 扫描下方二维码：</p>
