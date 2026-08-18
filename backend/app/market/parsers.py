@@ -1,4 +1,7 @@
-# backend/app/market/parsers.py
+"""新浪/腾讯行情接口的文本解析器.
+
+提供对行情接口返回文本的解析函数，失败时统一抛出 ValueError.
+"""
 import re
 from datetime import datetime
 
@@ -6,10 +9,22 @@ from app.models import IntradayPoint, Quote
 
 
 def _today() -> datetime:
+    """返回去除微秒的当前时间，作为行情快照时间戳."""
     return datetime.now().replace(microsecond=0)
 
 
 def parse_sina(text: str) -> Quote:
+    """解析新浪行情接口返回文本为实时行情快照.
+
+    Args:
+        text: 新浪行情接口返回的单行文本.
+
+    Returns:
+        解析得到的 Quote 快照.
+
+    Raises:
+        ValueError: 文本缺少行情载荷（无法匹配 `="...";` 片段）时抛出.
+    """
     m = re.search(r'="(.*)";', text)
     if not m:
         raise ValueError("bad sina payload")
@@ -33,7 +48,20 @@ def parse_sina(text: str) -> Quote:
 
 
 def parse_tencent(text: str) -> Quote:
+    """解析腾讯行情接口返回文本为实时行情快照.
+
+    Args:
+        text: 腾讯行情接口返回的单行文本.
+
+    Returns:
+        解析得到的 Quote 快照.
+
+    Raises:
+        ValueError: 文本缺少行情载荷（无法匹配 `="...";` 片段）时抛出.
+    """
     m = re.search(r'="(.*)";', text)
+    if not m:
+        raise ValueError("bad tencent payload")
     f = m.group(1).split("~")
     prev_close = float(f[4])
     price = float(f[3])
@@ -54,7 +82,15 @@ def parse_tencent(text: str) -> Quote:
 
 
 def parse_sina_intraday(text: str) -> list[IntradayPoint]:
-    pts = []
+    """解析新浪日内分时接口返回文本为分时数据点列表.
+
+    Args:
+        text: 新浪分时接口返回的多行文本.
+
+    Returns:
+        分时数据点列表；无实际数据的行会被跳过.
+    """
+    pts: list[IntradayPoint] = []
     for line in text.strip().splitlines():
         if "=" in line or not line.strip():
             continue

@@ -27,7 +27,7 @@ class ThsWebClient(ThsAdapter):
         self._client = client
         self._prefix = endpoint_prefix
         self._timeout = timeout
-        self._pending_qr = None
+        self._pending_qr: dict | None = None
 
     @property
     def is_logged_in(self) -> bool:
