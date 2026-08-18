@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# 本地凭据保险箱数据
+backend/data/
+*.sqlite3
+*.db
+
+# Node / frontend
+node_modules/
+dist/
+frontend/.vite/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+
+# 环境变量/密钥占位（严禁提交真实密钥）
+.env
+*.pem
+*.key
