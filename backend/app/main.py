@@ -30,7 +30,11 @@ async def lifespan(app: FastAPI):
     vault = Vault(settings.data_dir)
     market = MarketService(client)
     news = NewsService(client)
-    ths = ThsWebClient(vault, client, settings.ths_endpoint_prefix)
+    ths = ThsWebClient(vault,
+                       client,
+                       settings.ths_endpoint_prefix,
+                       watchlist_url=settings.ths_watchlist_url,
+                       positions_url=settings.ths_positions_url)
     bus = EventBus()
 
     async def positions_fetcher():

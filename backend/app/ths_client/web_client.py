@@ -6,7 +6,6 @@
 import base64
 import json
 import logging
-from typing import Any
 
 import httpx
 
@@ -60,24 +59,6 @@ class ThsWebClient(ThsAdapter):
         session = self._vault.load_session()
         if session and session.get("cookies"):
             self._client.cookies.update(session["cookies"])
-
-    async def _get_json(self, path: str, **params: Any) -> dict[str, Any]:
-        """请求同花顺接口并返回 JSON 载荷（cookie 鉴权）.
-
-        Args:
-            path: 接口路径.
-            **params: 附加查询参数.
-
-        Returns:
-            接口返回的 JSON 字典.
-
-        Raises:
-            httpx.HTTPStatusError: 接口返回非 2xx 状态码时抛出.
-        """
-        r = await self._client.get(self._prefix + path, params=params, timeout=self._timeout)
-        r.raise_for_status()
-        data: dict[str, Any] = r.json()
-        return data
 
     async def login_qrcode(self) -> dict:
         """获取扫码登录二维码.
@@ -162,31 +143,53 @@ class ThsWebClient(ThsAdapter):
         """查询当前自选股列表.
 
         Returns:
-            自选股 Stock 列表.
+            自选股 Stock 列表；未配置接口或请求失败时返回空列表.
         """
-        data = await self._get_json("/watchlist")
-        return parse_watchlist(_json_text(data))
+        if not self._watchlist_url:
+            logger.warning("自选查询接口未配置（IB_THS_WATCHLIST_URL）")
+            return []
+        self._apply_session()
+        try:
+            r = await self._client.get(self._watchlist_url, timeout=self._timeout)
+            r.raise_for_status()
+            return parse_watchlist(_json_text(r.json()))
+        except Exception as e:
+            logger.warning("查询自选失败: %s", e)
+            return []
 
     async def query_positions(self) -> list[Position]:
         """查询当前持仓列表.
 
         Returns:
-            持仓 Position 列表.
+            持仓 Position 列表；未配置接口或请求失败时返回空列表.
         """
-        data = await self._get_json("/positions")
-        return parse_positions(_json_text(data))
+        if not self._positions_url:
+            logger.warning("持仓查询接口未配置（IB_THS_POSITIONS_URL）")
+            return []
+        self._apply_session()
+        try:
+            r = await self._client.get(self._positions_url, timeout=self._timeout)
+            r.raise_for_status()
+            return parse_positions(_json_text(r.json()))
+        except Exception as e:
+            logger.warning("查询持仓失败: %s", e)
+            return []
 
     async def refresh_session(self) -> bool:
-        """刷新/校验会话是否仍然有效.
+        """校验会话是否仍然有效.
 
         Returns:
-            会话有效返回 True；请求异常返回 False.
+            会话有效返回 True；未配置接口或请求异常返回 False.
         """
+        if not self._watchlist_url:
+            return self._vault.is_logged_in
+        self._apply_session()
         try:
-            await self._get_json("/session/check")
+            r = await self._client.get(self._watchlist_url, timeout=self._timeout)
+            r.raise_for_status()
             return True
         except Exception as e:
-            logger.warning("会话保活失败: %s", e)
+            logger.warning("会话校验失败: %s", e)
             return False
 
     async def logout(self) -> None:
