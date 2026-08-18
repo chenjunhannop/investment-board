@@ -7,7 +7,7 @@ interface PriceCardProps {
 export default function PriceCard({ q }: PriceCardProps) {
   const up = q.change >= 0;
   return (
-    <div className="price-card">
+    <div className={`price-card ${up ? 'up' : 'down'}`}>
       <div className="name">
         {q.name}
         <span className="code">{q.code}</span>

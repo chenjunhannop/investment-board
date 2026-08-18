@@ -140,10 +140,35 @@ body {
 .cell {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 14px;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.cell:hover {
+  background: var(--panel-hover);
+  transform: translateY(-1px);
 }
 
+.price-card {
+  position: relative;
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 14px;
+  overflow: hidden;
+}
+.price-card.up {
+  border-left-color: var(--up);
+  background: linear-gradient(180deg, var(--up-bg), transparent 55%), var(--panel);
+}
+.price-card.down {
+  border-left-color: var(--down);
+  background: linear-gradient(180deg, var(--down-bg), transparent 55%), var(--panel);
+}
 .price-card .name {
   font-size: 14px;
   font-weight: 600;
@@ -152,20 +177,28 @@ body {
 }
 .price-card .code {
   color: var(--muted);
+  font-family: var(--font-data);
   font-weight: 400;
-  font-size: 12px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
 .price-card .price {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 600;
   margin: 6px 0 2px;
+  transition: color 200ms ease;
 }
 .price-card .change {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
 }
 .price-card .muted {
   margin-top: 8px;
   font-size: 11px;
+  color: var(--muted);
 }
 
 .panel {
