@@ -580,3 +580,39 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+## As-Built（执行记录，2026-08-18）
+
+### 提交清单
+
+| Task | Commit | 内容 | 验证结果 |
+| --- | --- | --- | --- |
+| 1 | `4799e38` | `refactor: 移除同花顺/持仓/登录与会话存储（回归纯公开数据源）` | 删除 `test_ths_client.py`/`test_vault.py` 后剩余测试 17 passed；ruff/mypy/yapf 通过 |
+| 2 | `9f2243d` | `feat: 本地自选列表存储与 REST API` | 新增 `test_watchlist.py` 5 用例 → 22 passed；ruff/mypy/check_no_trade 通过 |
+| 3 | `9d37ac7` | `refactor: 行情/新闻按本地自选列表拉取（不再依赖同花顺）` | 适配 `test_core.py` 新增 1 用例 → 23 passed；ruff/mypy/check_no_trade 通过 |
+| 4 | `5a34b8e` | `feat: 新增自选管理页并移除持仓/登录 UI` | 前端 eslint/prettier/tsc/build 全绿；check_no_trade 通过 |
+| 5 | 本次提交 | `docs: 去同花顺化计划追加执行记录（as-built）` | `make check && make lint && make typecheck && make test && make build` 全绿；手动冒烟通过 |
+
+### Task 5 验收输出
+
+- `make check`：`OK: 未发现交易语义代码。`
+- `make lint`：ruff 零错；yapf 零 diff；eslint 零错；prettier 全匹配。
+- `make typecheck`：mypy `Success: no issues found in 17 source files`；tsc 通过。
+- `make test`：`23 passed`（1 个 starlette deprecation warning，非失败）。
+- `make build`：Vite 构建成功（chunk 大小提示为既有非阻塞警告）。
+- 手动冒烟（后端 8210 + 前端 5173）：
+  - `GET /api/status` → `{"sources":{"market":"ok","news":"ok"}}`（无 `logged_in`/`ths`）。
+  - `POST /api/watchlist {"code":"600519"}` → `[{"code":"600519","name":""}]`；`GET /api/watchlist` 确认持久化；等待 ~12s 后 `GET /api/quotes` 返回实时行情（`贵州茅台` 名称由行情补齐）；`DELETE /api/watchlist/600519` → `[]`。
+  - 前端 `localhost:5173` 正常返回页面，经 Vite 代理 `/api/status` 正常；导航为 看板/自选/新闻/设置（无持仓）。
+  - 冒烟期间财联社 `telegraphList` 返回 404，后端优雅降级（记录告警、返回空列表），属第三方接口变动、非回归。
+
+### 偏差 / 遗留清单
+
+1. **POST 仅存 code（简化）**：按计划 Task 2 备注，添加自选时仅存 code（name 空串），显示层用行情 `Quote.name` 补齐，`/api/watchlist` 路由不依赖市场服务。As-Built 记录此简化。
+2. **Task 5 清理死字段**：`backend/app/config.py` 残留 `positions_interval` 死字段（仅旧文档引用），本次提交一并删除；ruff/mypy/pytest 复验通过。
+3. **Task 5 修复 yapf 格式**：Task 3 提交的 `backend/tests/test_core.py` 存在 yapf 格式不达标（`make lint` 此前未全量覆盖），本次以 `yapf -i` 修复，使 `make lint` 全绿。
+4. **删除的测试文件清单**：`backend/tests/test_ths_client.py`（114 行）、`backend/tests/test_vault.py`（43 行）。
+5. **遗留（超出本计划范围未动）**：`docs/architecture.md` 与 `docs/compliance.md` 仍含同花顺/持仓/会话描述，因 Global Constraints 限定仅改 `README.md` + `docs/ths-reverse-engineering.md`，未一并更新，建议后续独立跟进。
+6. **遗留（外部源）**：财联社全局快讯接口 404，新闻 `individual` 为空属外部源变动，非本项目缺陷。

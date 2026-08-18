@@ -12,7 +12,6 @@ class Settings:
     port: int = 8210
     data_dir: Path = Path.home() / ".investment-board"
     quotes_interval: float = 3.0
-    positions_interval: float = 10.0
     news_interval: float = 60.0
 
 

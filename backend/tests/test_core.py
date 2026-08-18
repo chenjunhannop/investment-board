@@ -45,9 +45,11 @@ def test_scheduler_collect_codes_includes_watchlist(tmp_path, monkeypatch):
     from app.config import settings
 
     monkeypatch.setattr(settings, "data_dir", tmp_path)
-    (tmp_path / "watchlist.json").write_text(
-        json.dumps([{"code": "000001", "name": "平安银行"}]), encoding="utf-8"
-    )
+    (tmp_path / "watchlist.json").write_text(json.dumps([{
+        "code": "000001",
+        "name": "平安银行"
+    }]),
+                                             encoding="utf-8")
     bus = EventBus()
     sched = Scheduler(bus, quotes_fetcher=None)
     sched.quotes = {
