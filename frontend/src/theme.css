@@ -1,60 +1,186 @@
 :root {
-  --bg: #0f1419; --panel: #1a2029; --border: #2a3340;
-  --text: #e6edf3; --muted: #8b98a5; --up: #e74c3c; --down: #2ecc71;
+  --bg: #0f1419;
+  --panel: #1a2029;
+  --border: #2a3340;
+  --text: #e6edf3;
+  --muted: #8b98a5;
+  --up: #e74c3c;
+  --down: #2ecc71;
   --accent: #4f9cf9;
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-       font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
 
-.app { max-width: 1080px; margin: 0 auto; padding: 16px; }
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px;
+}
 
-.topbar { display: flex; align-items: center; justify-content: space-between;
-          margin-bottom: 16px; }
-.topbar h1 { font-size: 20px; margin: 0; }
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.topbar h1 {
+  font-size: 20px;
+  margin: 0;
+}
 
-.tabs { display: flex; gap: 8px; }
-.tabs button { background: transparent; color: var(--muted); border: 1px solid var(--border);
-               border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 14px; }
-.tabs button:hover { color: var(--text); }
-.tabs button.active { color: var(--text); background: var(--panel);
-                      border-color: var(--accent); }
+.tabs {
+  display: flex;
+  gap: 8px;
+}
+.tabs button {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.tabs button:hover {
+  color: var(--text);
+}
+.tabs button.active {
+  color: var(--text);
+  background: var(--panel);
+  border-color: var(--accent);
+}
 
-.page { display: flex; flex-direction: column; gap: 12px; }
-.page h2 { font-size: 16px; margin: 4px 0; }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.page h2 {
+  font-size: 16px;
+  margin: 4px 0;
+}
 
-.status-bar { padding: 10px 14px; border-radius: 8px; background: var(--panel);
-              border: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+.status-bar {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
 
-.summary-card { display: flex; gap: 32px; padding: 14px 16px; border-radius: 8px;
-                background: var(--panel); border: 1px solid var(--border); font-size: 14px; }
-.summary-card b { font-size: 18px; margin-left: 6px; }
+.summary-card {
+  display: flex;
+  gap: 32px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+.summary-card b {
+  font-size: 18px;
+  margin-left: 6px;
+}
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-.cell { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-        padding: 14px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.cell {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
 
-.price-card .name { font-size: 14px; font-weight: 600; display: flex;
-                    justify-content: space-between; }
-.price-card .code { color: var(--muted); font-weight: 400; font-size: 12px; }
-.price-card .price { font-size: 26px; font-weight: 700; margin: 6px 0 2px; }
-.price-card .change { font-size: 13px; }
-.price-card .muted { margin-top: 8px; font-size: 11px; }
+.price-card .name {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+}
+.price-card .code {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 12px;
+}
+.price-card .price {
+  font-size: 26px;
+  font-weight: 700;
+  margin: 6px 0 2px;
+}
+.price-card .change {
+  font-size: 13px;
+}
+.price-card .muted {
+  margin-top: 8px;
+  font-size: 11px;
+}
 
-.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
-         padding: 14px 16px; font-size: 14px; }
-.panel h3 { margin: 0 0 10px; font-size: 15px; }
-.panel p { margin: 6px 0; }
-.panel ul { margin: 8px 0; padding-left: 18px; line-height: 1.9; }
-.panel button { background: var(--panel); color: var(--text); border: 1px solid var(--border);
-                border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 14px; }
-.panel button:hover { border-color: var(--accent); }
-.panel button.danger { color: #ff6b6b; border-color: #ff6b6b; }
-.panel button.danger:hover { background: rgba(255, 107, 107, 0.1); }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+.panel h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.panel p {
+  margin: 6px 0;
+}
+.panel ul {
+  margin: 8px 0;
+  padding-left: 18px;
+  line-height: 1.9;
+}
+.panel button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.panel button:hover {
+  border-color: var(--accent);
+}
+.panel button.danger {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+.panel button.danger:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
 
-.qr-box { margin-top: 12px; }
-.qr-code { white-space: pre-wrap; word-break: break-all; user-select: all;
-           background: #0f1419; border: 1px dashed var(--border); border-radius: 8px;
-           padding: 10px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.qr-box {
+  margin-top: 12px;
+}
+.qr-code {
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: all;
+  background: #0f1419;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
 
-.muted { color: var(--muted); }
+.muted {
+  color: var(--muted);
+}

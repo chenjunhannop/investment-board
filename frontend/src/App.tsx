@@ -1,29 +1,32 @@
-import { useEffect, useState } from 'react'
-import { useApp } from './store'
-import Dashboard from './pages/Dashboard'
-import Positions from './pages/Positions'
-import News from './pages/News'
-import Settings from './pages/Settings'
+import { useEffect, useState } from 'react';
+import { useApp } from './store';
+import Dashboard from './pages/Dashboard';
+import Positions from './pages/Positions';
+import News from './pages/News';
+import Settings from './pages/Settings';
 
-type Page = 'dashboard' | 'positions' | 'news' | 'settings'
+type Page = 'dashboard' | 'positions' | 'news' | 'settings';
 
 export default function App() {
-  const init = useApp((s) => s.init)
-  const [page, setPage] = useState<Page>('dashboard')
-  useEffect(() => { init() }, [init])
+  const init = useApp((s) => s.init);
+  const [page, setPage] = useState<Page>('dashboard');
+  useEffect(() => {
+    init();
+  }, [init]);
   return (
     <div className="app">
       <header className="topbar">
         <h1>Investment Board</h1>
         <nav className="tabs">
-          {([
-            ['dashboard', '看板'],
-            ['positions', '持仓'],
-            ['news', '新闻'],
-            ['settings', '设置'],
-          ] as const).map(([key, label]) => (
-            <button key={key} className={page === key ? 'active' : ''}
-                    onClick={() => setPage(key)}>
+          {(
+            [
+              ['dashboard', '看板'],
+              ['positions', '持仓'],
+              ['news', '新闻'],
+              ['settings', '设置'],
+            ] as const
+          ).map(([key, label]) => (
+            <button key={key} className={page === key ? 'active' : ''} onClick={() => setPage(key)}>
               {label}
             </button>
           ))}
@@ -34,5 +37,5 @@ export default function App() {
       {page === 'news' && <News />}
       {page === 'settings' && <Settings />}
     </div>
-  )
+  );
 }
