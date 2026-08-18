@@ -376,3 +376,67 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 自选管理：输入行 */
+.watchlist-add {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.watchlist-add input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+.watchlist-add input:focus {
+  border-color: var(--accent);
+}
+.watchlist-add button {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+.watchlist-add button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 自选管理：删除按钮 */
+.cell .remove {
+  width: 100%;
+  margin-top: 10px;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.cell .remove:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}

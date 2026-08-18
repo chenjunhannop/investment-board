@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import Dashboard from './pages/Dashboard';
 import News from './pages/News';
-import Positions from './pages/Positions';
 import Settings from './pages/Settings';
+import Watchlist from './pages/Watchlist';
 import { useApp } from './store';
 
-type Page = 'dashboard' | 'positions' | 'news' | 'settings';
+type Page = 'dashboard' | 'watchlist' | 'news' | 'settings';
 
 export default function App() {
   const init = useApp((s) => s.init);
@@ -21,7 +21,7 @@ export default function App() {
           {(
             [
               ['dashboard', '看板'],
-              ['positions', '持仓'],
+              ['watchlist', '自选'],
               ['news', '新闻'],
               ['settings', '设置'],
             ] as const
@@ -33,7 +33,7 @@ export default function App() {
         </nav>
       </header>
       {page === 'dashboard' && <Dashboard />}
-      {page === 'positions' && <Positions />}
+      {page === 'watchlist' && <Watchlist />}
       {page === 'news' && <News />}
       {page === 'settings' && <Settings />}
     </div>
