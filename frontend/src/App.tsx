@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useApp } from './store'
 import Dashboard from './pages/Dashboard'
 import Positions from './pages/Positions'
+import News from './pages/News'
 
 type Page = 'dashboard' | 'positions' | 'news' | 'settings'
 
@@ -29,7 +30,7 @@ export default function App() {
       </header>
       {page === 'dashboard' && <Dashboard />}
       {page === 'positions' && <Positions />}
-      {page === 'news' && <div className="page">新闻页（Task 12 实现）</div>}
+      {page === 'news' && <News />}
       {page === 'settings' && <div className="page">设置页（Task 13 实现）</div>}
     </div>
   )
