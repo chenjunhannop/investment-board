@@ -9,21 +9,36 @@
 
 ## 接口契约表
 
-默认前缀：`https://eq.10jqka.com.cn`（环境变量 `IB_THS_ENDPOINT` 可覆盖）。
-所有请求为 GET，需登录态的请求自动附带 `Authorization: Bearer <token>`（token 来自 Vault 解密）。
+默认前缀：`https://upass.10jqka.com.cn`（环境变量 `IB_THS_ENDPOINT` 可覆盖）。
+登录态以 **cookie 会话** 传递（不再使用 `Authorization: Bearer <token>`）；cookie 在登录成功时
+捕获，经 Vault AES-256-GCM 加密存本机，查询前由 `_apply_session()` 恢复。
 
 | # | 路径 | 用途 | 请求参数 | 响应（简化） | 本地处理 |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `GET /qrcode` | 获取登录二维码 | 无 | `{"data":{"qrcode":"<base64>"}}` | 缓存 `data`，返回 `{"qrcode_data": ...}` |
-| 2 | `GET /poll` | 轮询扫码结果 | 无 | `{"data":{"status":1,"token":"...","user":"..."}}` | `status==1` → token 经 Vault 加密持久化，返回 `True` |
-| 3 | `GET /watchlist` | 自选列表 | 无（需登录） | `{"data":[{"code","name","market"}]}` | `parse_watchlist` → `list[Stock]`，`market` 缺省 `"SH"` |
-| 4 | `GET /positions` | 持仓列表 | 无（需登录） | `{"data":[{"code","name","amount","cost","enable_amount"}]}` | `parse_positions` → `list[Position]` |
-| 5 | `GET /session/check` | 会话保活 | 无（需登录） | `{"data":{...}}`（200） | 成功 `True`，异常捕获返回 `False` |
+| 1 | `GET /scan/creatCode` | 获取登录二维码 qrid | 无 | `{"qrid":"usk_xxx"}` | 取 `qrid`，随后请求 creatImg |
+| 2 | `GET /scan/creatImg?qrid=<qrid>` | 取二维码 PNG 图片 | `qrid` | 二进制 PNG 图片 | base64 编码后返回 `{"qrid","qrcode_img"}` |
+| 3 | `POST /scan/getInfoNew` | 轮询扫码结果 | `qrid`、`state=1`、`source=pc_web`、`page_source=web_screen`、`request_type=login`（form） | `{"status": 0\|1\|2\|3}` | 按轮询语义映射（见下表） |
+| 4 | `GET https://www.10jqka.com.cn/` | 跟随跳转捕获登录态 cookie | 无 | 200 + `Set-Cookie` | 收集 cookies → Vault 持久化 |
+| 5 | 自选 / 持仓查询 | 需登录 cookie | 见 `IB_THS_WATCHLIST_URL` / `IB_THS_POSITIONS_URL` | `{"data":[...]}`（包裹层级待实测） | `parse_watchlist` / `parse_positions` |
+
+### 轮询语义（getInfoNew 的 `status`）
+
+| status | 语义 | 本地处理 |
+| --- | --- | --- |
+| `0` | 二维码过期 | `{"ok": false, "reason": "expired"}`（前端自动刷新二维码） |
+| `1` | 等待扫码 | `{"ok": false, "reason": "waiting"}` |
+| `2` | 已扫码，待手机确认 | `{"ok": false, "reason": "confirmed"}`（前端提示「请在手机上确认登录」） |
+| `3` | 扫码确认成功 | 跟随跳转捕获 cookie → `{"ok": true}` |
+| 异常 / 非 JSON | 接口不可用 | `{"ok": false, "reason": "waiting"}`（优雅降级，不抛 500） |
 
 ### 字段映射
 
 | 接口字段 | 本地字段 | 说明 |
 | --- | --- | --- |
+| `qrid` | `LoginQrcode.qrid` | 扫码二维码 ID（后续轮询入参） |
+| 二维码 PNG | `LoginQrcode.qrcode_img` | base64，前端 `<img src="data:image/png;base64,...">` 展示 |
+| `status` | `LoginPoll.reason` | 0/1/2/3 → expired/waiting/confirmed/成功（见轮询语义表） |
+| cookie 会话 | Vault `session.enc` | 登录态以 cookie 存储，**替代原 Bearer token** |
 | `amount` | `Position.quantity` | 持股数量（股） |
 | `cost` | `Position.cost_price` | 成本价 |
 | `enable_amount` | `Position.available` | 可用数量（缺省 0） |
@@ -31,9 +46,9 @@
 
 ### 校验状态
 
-- 各 endpoint 路径与字段来自对同花顺网页版登录 / 自选 / 持仓流程的逆向分析。
+- 各 endpoint 路径与字段来自对同花顺网页版（`upass.10jqka.com.cn`）扫码登录流程的逆向分析。
 - **需通过浏览器开发者工具抓包核实，若有出入以实测为准。** 建议在接入前用真实扫码流程
-  校验字段名与嵌套层级。
+  校验字段名与嵌套层级（尤其 `getInfoNew` 的 `status` 语义与查询接口返回包裹层级）。
 
 ## 抓包方法
 
@@ -41,8 +56,9 @@
 
 1. 用 Chrome / Edge 打开同花顺网页版登录页。
 2. `F12` → `Network`（网络）面板，勾选 `Preserve log`（保留日志）。
-3. 执行扫码登录，观察以下请求：`/qrcode`、`/poll`、`/watchlist`、`/positions`、`/session/check`。
-4. 逐个点击请求，查看 `Request URL`、`Request Headers`（尤其是 `Authorization`）与
+3. 执行扫码登录，观察以下请求：`/scan/creatCode`、`/scan/creatImg`、`/scan/getInfoNew`，
+   登录成功后的 `www.10jqka.com.cn` 跳转（`Set-Cookie`）以及自选/持仓查询请求。
+4. 逐个点击请求，查看 `Request URL`、`Request Headers`（cookie 会话，无 `Authorization`）与
    `Response`（Preview / Response）中的字段嵌套。
 5. 与上表比对，记录差异。
 
@@ -50,14 +66,14 @@
 
 1. 配置系统代理（如 mitmproxy：`mitmweb --listen-port 8080`）。
 2. 浏览器 / 移动端安装并信任根证书。
-3. 复现登录与查询流程，过滤 `eq.10jqka.com.cn` 域名。
+3. 复现登录与查询流程，过滤 `upass.10jqka.com.cn`（登录）/ `search.10jqka.com.cn`（查询）域名。
 
 ### 核实要点
 
 - 响应是否包裹在 `{"data": ...}` 中、`data` 是对象还是数组。
-- `status == 1` 是否仍是「扫码成功」语义。
-- token 字段名、`Authorization` 前缀（当前实现假定 `Bearer`）。
-- 二维码返回的是 base64 图片数据还是其他编码。
+- `getInfoNew` 的 `status` 是否仍是 0/1/2/3 语义（见轮询语义表）。
+- 登录态是 cookie 还是 token；cookie 的字段名与域名。
+- 二维码返回的是二进制 PNG 图片还是 base64 文本。
 
 ## 失效时的降级行为
 
@@ -92,7 +108,7 @@
 
 | 现象 | 可能原因 | 处理 |
 | --- | --- | --- |
-| `/qrcode` 或 `/poll` 返回 404 / 字段变化 | 登录接口改版 | 重新抓包，更新契约与解析器 |
-| 扫码成功但 `status != 1` | 轮询语义变化 | 核实 `status` 含义，必要时加日志 |
+| `/scan/creatCode` 或 `/scan/getInfoNew` 返回 404 / 字段变化 | 登录接口改版 | 重新抓包，更新契约与解析器 |
+| 扫码成功但 `status != 3` | 轮询语义变化 | 核实 `status` 含义，必要时加日志 |
 | 请求被风控 / 429 | 访问过于频繁 | 确认限频（≥10s + 抖动）未被改动 |
 | 会话保活频繁失败 | token 过期 / 接口变更 | 重新扫码登录；若持续失败按上文抓包核实 |

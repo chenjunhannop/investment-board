@@ -103,9 +103,15 @@ CI（GitHub Actions）会自动执行以上三项。
 界面会提示「自选 / 持仓暂不可用」，健康灯变为异常；登录态会通过 `refresh_session` 保活，
 失效后提示重新扫码。
 
-> **当前已知**（2026-08）：`eq.10jqka.com.cn/qrcode` 登录接口返回 404/403，
-> 扫码登录不可用。点击登录时界面会提示「同花顺接口暂时不可用」而非无响应；
-> 行情（新浪/腾讯）与新闻（东财公告）不受影响。
+> **登录链路现状**（2026-08 修复）：登录已从失效的 `eq.10jqka.com.cn/qrcode` 接口
+> 迁移到 `upass.10jqka.com.cn` 网页版扫码（`creatCode` / `creatImg` / `getInfoNew`）。
+> 二维码以真实 PNG 图片返回前端 `<img>` 展示，登录态以 cookie 会话经 AES-256-GCM
+> 加密存本机（不再使用 Bearer token）。
+>
+> **自选 / 持仓查询接口已配置化**：用环境变量 `IB_THS_WATCHLIST_URL` /
+> `IB_THS_POSITIONS_URL` 指定（自选已知线索
+> `https://search.10jqka.com.cn/service/getSelfStock`，持仓待真实扫码抓包确认；
+> **默认均为空串**）。未配置时对应查询优雅返回空列表，不影响行情 / 新闻。
 
 接口契约与抓包方法见 [docs/ths-reverse-engineering.md](docs/ths-reverse-engineering.md)。
 如你抓包确认了新字段 / 新路径，欢迎提交 PR（指引见该文档）。
@@ -131,5 +137,6 @@ CI（GitHub Actions）会自动执行以上三项。
 ### 5. 换端口 / 换数据目录？
 
 后端支持环境变量：`IB_PORT`（端口）、`IB_DATA_DIR`（数据目录）、
-`IB_THS_ENDPOINT`（同花顺接口前缀，默认 `https://eq.10jqka.com.cn`）。前端代理目标固定为
-`127.0.0.1:8210`（见 `frontend/vite.config.ts`）。
+`IB_THS_ENDPOINT`（同花顺登录接口前缀，默认 `https://upass.10jqka.com.cn`）、
+`IB_THS_WATCHLIST_URL` / `IB_THS_POSITIONS_URL`（自选 / 持仓查询 URL，默认空串）。
+前端代理目标固定为 `127.0.0.1:8210`（见 `frontend/vite.config.ts`）。

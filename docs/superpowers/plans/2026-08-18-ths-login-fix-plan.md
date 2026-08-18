@@ -596,3 +596,38 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+## As-Built 执行记录（2026-08-18 追加）
+
+### 各任务提交与验证
+
+| Task | Commit（短 hash） | 验证结果 | 备注 / 偏差 |
+| --- | --- | --- | --- |
+| Task 1 后端登录链路重写 | `bd65f97` | `ruff check`、`mypy` 通过；`pytest` 中 `test_web_client_login_flow` 红 | **预期红**：旧测试 mock 的是旧 `/qrcode`+`/poll` 契约，属计划内预期（Task 3 恢复全绿） |
+| Task 2 查询接口配置化 + 会话恢复 | `97093de` | `ruff` / `mypy` / `yapf` 通过 | **偏差：删死代码**——重写 `query_watchlist`/`query_positions`/`refresh_session` 时顺带清理了已无引用的旧 `_get_json`/Bearer header 相关死代码 |
+| Task 3 测试适配 | `e0e3049` | `pytest` 31 passed；`ruff` / `mypy` / `check_no_trade.py` 通过 | **偏差：D403 措辞**——ruff D403（docstring 祈使句首）对中文 docstring 的告警按项目惯例处理（中文措辞 + 句末 ASCII `.`） |
+| Task 4 前端扫码登录改造 | `393ae26` | `npm run lint` / `format:check` / `build` 通过；`check_no_trade.py` OK | **偏差：死 CSS 未清**——`Settings.tsx` 遗留少量不再使用的样式类未清理（不影响构建与运行，留待后续视觉收尾） |
+
+### Task 5 全量验收与本地冒烟（2026-08-18）
+
+- **全量验收**：`make check`（OK：未发现交易语义代码）→ `make lint`（ruff / yapf / eslint / prettier 零错）→ `make typecheck`（后端 mypy Success，前端 tsc Success）→ `make test`（**31 passed**）→ `make build`（Vite 构建成功）。
+- **本地接口冒烟**（`./run.sh` + curl，**真实网络环境**，非 mock）：
+  - `POST /api/login/qrcode` → `{"qrid":"usk_...","qrcode_img":"<base64 PNG>"}`；真实命中 `upass.10jqka.com.cn/scan/creatCode` + `/scan/creatImg`，均 `200 OK`，返回有效二维码图。
+  - `POST /api/login/poll`（`{"qrid":"x"}`）→ `{"ok":false,"reason":"expired"}`；真实命中 `/scan/getInfoNew` `200 OK`，非法 qrid 优雅降级为 `expired`（不抛 500）。
+  - `GET /api/status` → 正常（`ths: not_logged_in`，行情 / 新闻 ok）。
+  - 冒烟后按计划 `pkill -f "uvicorn app.main"` 停止服务。
+
+### 已知待办 / 偏差汇总
+
+1. **真实扫码端到端（Task 5 Step 4）未做**：需用户用手机同花顺 App 扫码确认（二维码展示 → 手机确认 → 状态流转 → 自选/持仓数据）。**待用户配合后由主 agent 完成并补充本节。**
+2. **查询接口默认空串**：`ths_watchlist_url` / `ths_positions_url` 默认均为空串（`IB_THS_WATCHLIST_URL` / `IB_THS_POSITIONS_URL` 可覆盖）。自选已知线索 `https://search.10jqka.com.cn/service/getSelfStock` 待真实扫码抓包确认后填默认值；持仓 URL 待抓包。未配置时查询优雅返回空列表（记 WARNING）。
+3. **`_json_text` 包裹层级适配点**：默认假定查询响应为 `{"data":[...]}`；若实测新查询接口不包裹，需在真实扫码抓包后调整（计划保留的适配点）。
+4. **文档同步**：本次除计划指定文件外，同步更新了 `backend/app/ths_client/README.md`（原为旧 eq / Bearer 契约，与 `docs/ths-reverse-engineering.md` 互为引用，一并修正为新契约）。
+
+### Task 5 提交
+
+| 提交 | 内容 |
+| --- | --- |
+| `docs: 同花顺登录修复计划追加执行记录（as-built）` | README FAQ 更新 + `docs/ths-reverse-engineering.md` 契约表/轮询语义更新 + `backend/app/ths_client/README.md` 同步 + 本 As-Built |
