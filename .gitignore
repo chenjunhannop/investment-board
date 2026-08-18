@@ -17,6 +17,7 @@ backend/data/
 node_modules/
 dist/
 frontend/.vite/
+*.tsbuildinfo
 
 # OS / Editor
 .DS_Store

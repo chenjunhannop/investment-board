@@ -1,0 +1,8 @@
+:root {
+  --bg: #0f1419; --panel: #1a2029; --border: #2a3340;
+  --text: #e6edf3; --muted: #8b98a5; --up: #e74c3c; --down: #2ecc71;
+  --accent: #4f9cf9;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+       font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
