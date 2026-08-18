@@ -102,7 +102,8 @@ class Vault:
         key = _get_or_create_key()
         nonce, ct = blob[2:14], blob[14:]
         raw = AESGCM(key).decrypt(nonce, ct, None)
-        return json.loads(raw.decode())
+        data = json.loads(raw.decode())
+        return data if isinstance(data, dict) else None
 
     def clear(self) -> None:
         """删除已保存的加密会话文件."""

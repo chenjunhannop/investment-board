@@ -13,16 +13,37 @@ jobs:
       - name: Install & Test
         working-directory: backend
         run: |
-          pip install -e ".[dev]" respx
-          python -m pytest -q
+          python -m venv .venv
+          .venv/bin/pip install -e ".[dev]" respx
+          .venv/bin/python -m pytest -q
+      - name: Lint (ruff)
+        run: cd backend && .venv/bin/ruff check app tests
+      - name: Format check (yapf)
+        run: cd backend && .venv/bin/yapf -dr app tests
+      - name: Type check (mypy)
+        run: cd backend && .venv/bin/mypy app
+      - name: Commitlint
+        run: |
+          npm ci
+          npx --yes @commitlint/cli --from origin/main --to HEAD
+        env:
+          NODE_OPTIONS: ''
   frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
-      - name: Build
+      - name: Install
         working-directory: frontend
         run: |
           npm ci || npm install
-          npm run build
+      - name: Lint (eslint)
+        working-directory: frontend
+        run: npm run lint
+      - name: Format check (prettier)
+        working-directory: frontend
+        run: npm run format:check
+      - name: Build
+        working-directory: frontend
+        run: npm run build
