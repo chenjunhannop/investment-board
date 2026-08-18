@@ -36,3 +36,21 @@ async def test_scheduler_quotes_loop_publishes():
     sched.stop()
     assert len(published) >= 1
     assert "600519" in published[0]
+
+
+def test_scheduler_collect_codes_includes_watchlist(tmp_path, monkeypatch):
+    """_collect_codes 汇总本地自选代码与已有行情 key 的并集."""
+    import json
+
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "data_dir", tmp_path)
+    (tmp_path / "watchlist.json").write_text(
+        json.dumps([{"code": "000001", "name": "平安银行"}]), encoding="utf-8"
+    )
+    bus = EventBus()
+    sched = Scheduler(bus, quotes_fetcher=None)
+    sched.quotes = {
+        "600519": Quote("600519", "贵州茅台", 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, datetime.now())
+    }
+    assert sched._collect_codes() == ["000001", "600519"]

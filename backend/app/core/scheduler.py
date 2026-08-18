@@ -65,8 +65,14 @@ class Scheduler:
             t.cancel()
 
     def _collect_codes(self) -> list[str]:
-        """返回当前已缓存行情代码的排序列表."""
-        return sorted(self.quotes.keys())
+        """汇总本地自选代码与已有行情 key 的并集并排序返回."""
+        from app.config import settings
+        from app.core import watchlist
+
+        codes = set(self.quotes.keys())
+        for item in watchlist.load_watchlist(settings.data_dir):
+            codes.add(item["code"])
+        return sorted(codes)
 
     async def _quotes_loop(self):
         """周期抓取行情并发布；异常仅记日志，等待下个周期重试."""
