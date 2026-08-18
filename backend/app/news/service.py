@@ -15,6 +15,7 @@ CLS_TELEGRAPH_URL = "https://www.cls.cn/nodeapi/telegraphList?app=CailianpressWe
 
 
 class NewsService:
+
     def __init__(self, client: httpx.AsyncClient, timeout: float = 10.0):
         self._client = client
         self._timeout = timeout
@@ -23,9 +24,9 @@ class NewsService:
         out: list[NewsItem] = []
         for code in codes:
             try:
-                r = await self._client.get(
-                    EM_NOTICE_URL.format(code=code), timeout=self._timeout,
-                    headers={"User-Agent": "Mozilla/5.0"})
+                r = await self._client.get(EM_NOTICE_URL.format(code=code),
+                                           timeout=self._timeout,
+                                           headers={"User-Agent": "Mozilla/5.0"})
                 r.raise_for_status()
                 for item in parse_eastmoney(r.text):
                     if code not in item.related_codes:
@@ -37,9 +38,9 @@ class NewsService:
 
     async def fetch_global(self) -> list[NewsItem]:
         try:
-            r = await self._client.get(
-                CLS_TELEGRAPH_URL, timeout=self._timeout,
-                headers={"User-Agent": "Mozilla/5.0"})
+            r = await self._client.get(CLS_TELEGRAPH_URL,
+                                       timeout=self._timeout,
+                                       headers={"User-Agent": "Mozilla/5.0"})
             r.raise_for_status()
             return parse_cls(r.text)
         except Exception as e:

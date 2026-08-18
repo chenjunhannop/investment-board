@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 ws_router = APIRouter()
 
 # 需要向客户端推送的全部事件类型
-_EVENTS = (EventType.QUOTES, EventType.POSITIONS, EventType.NEWS,
-           EventType.THS_STATUS, EventType.SOURCE_STATUS)
+_EVENTS = (EventType.QUOTES, EventType.POSITIONS, EventType.NEWS, EventType.THS_STATUS,
+           EventType.SOURCE_STATUS)
 
 
 class ConnectionManager:
+
     def __init__(self):
         self.active: list[WebSocket] = []
 
@@ -40,6 +41,7 @@ async def websocket_endpoint(ws: WebSocket):
     # 每一条事件会被推 N 份，且每个事件产生 O(N^2) 个任务。
     # 改为每个订阅只推给自己：一条事件恰好产生一个任务、每个连接恰好一份。
     def _subscribe(et: str):
+
         async def _send(payload):
             try:
                 await ws.send_json({"type": et, "data": payload})

@@ -32,6 +32,7 @@ def _get_or_create_key() -> bytes:
 
 
 class Vault:
+
     def __init__(self, data_dir: Path):
         self.data_dir = data_dir
         self.data_dir.mkdir(parents=True, exist_ok=True)

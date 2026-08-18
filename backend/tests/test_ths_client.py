@@ -44,13 +44,17 @@ async def test_web_client_login_flow(tmp_path, monkeypatch, respx_mock: MockRout
     monkeypatch.setattr("app.vault.store._keyring_set", lambda s, u, p: None)
 
     respx_mock.get("https://ths.test/qrcode").mock(
-        return_value=httpx.Response(200, json={"data": {"qrcode": "qr-data"}}))
+        return_value=httpx.Response(200, json={"data": {
+            "qrcode": "qr-data"
+        }}))
     respx_mock.get("https://ths.test/poll").mock(
-        return_value=httpx.Response(200, json={"data": {"status": 1, "token": "t1"}}))
+        return_value=httpx.Response(200, json={"data": {
+            "status": 1,
+            "token": "t1"
+        }}))
 
     vault = Vault(tmp_path)
-    client = ThsWebClient(vault, httpx.AsyncClient(),
-                          endpoint_prefix="https://ths.test")
+    client = ThsWebClient(vault, httpx.AsyncClient(), endpoint_prefix="https://ths.test")
     await client.login_qrcode()
     ok = await client.poll_login()
     assert ok is True
@@ -60,8 +64,7 @@ async def test_web_client_login_flow(tmp_path, monkeypatch, respx_mock: MockRout
 
 def test_web_client_has_no_trade_methods():
     forbidden = ["place_order", "buy", "sell", "trade", "order"]
-    src = (Path(__file__).resolve().parent.parent
-           / "app/ths_client/web_client.py")
+    src = (Path(__file__).resolve().parent.parent / "app/ths_client/web_client.py")
     text = src.read_text()
     for word in forbidden:
         assert word not in text, f"发现交易语义方法: {word}"

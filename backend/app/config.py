@@ -18,5 +18,4 @@ class Settings:
 settings = Settings()
 settings.port = int(os.environ.get("IB_PORT", settings.port))
 settings.data_dir = Path(os.environ.get("IB_DATA_DIR", str(settings.data_dir)))
-settings.ths_endpoint_prefix = os.environ.get(
-    "IB_THS_ENDPOINT", settings.ths_endpoint_prefix)
+settings.ths_endpoint_prefix = os.environ.get("IB_THS_ENDPOINT", settings.ths_endpoint_prefix)

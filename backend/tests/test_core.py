@@ -11,8 +11,8 @@ from app.models import Position, Quote
 
 def test_compute_positions():
     p = Position("600519", "贵州茅台", 100, 1600.0, available=100)
-    q = Quote("600519", "贵州茅台", 1750.0, 50.0, 3.125,
-              1700.0, 1760.0, 1690.0, 1700.0, 0, 0, datetime.now())
+    q = Quote("600519", "贵州茅台", 1750.0, 50.0, 3.125, 1700.0, 1760.0, 1690.0, 1700.0, 0, 0,
+              datetime.now())
     out = compute_positions([p], {"600519": q})
     assert out[0].current_price == 1750.0
     assert out[0].market_value == 175000.0
@@ -36,9 +36,11 @@ def test_event_bus_dispatch():
 
 @pytest.mark.asyncio
 async def test_scheduler_quotes_loop_publishes():
+
     async def fetch_quotes(codes):
-        return {"600519": Quote("600519", "贵州茅台", 1.0, 0, 0,
-                                1.0, 1.0, 1.0, 1.0, 0, 0, datetime.now())}
+        return {
+            "600519": Quote("600519", "贵州茅台", 1.0, 0, 0, 1.0, 1.0, 1.0, 1.0, 0, 0, datetime.now())
+        }
 
     bus = EventBus()
     published = []

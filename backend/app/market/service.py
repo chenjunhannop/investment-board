@@ -29,6 +29,7 @@ def _split_codes(codes: list[str]) -> str:
 
 
 class MarketService:
+
     def __init__(self, client: httpx.AsyncClient, timeout: float = 10.0):
         self._client = client
         self._timeout = timeout
@@ -39,18 +40,18 @@ class MarketService:
         query = _split_codes(codes)
         if not query:
             return {}
-        for source, url in ((self.primary_source, SINA_QUOTE_URL),
-                            (self.fallback_source, TENCENT_QUOTE_URL)):
+        for source, url in ((self.primary_source, SINA_QUOTE_URL), (self.fallback_source,
+                                                                    TENCENT_QUOTE_URL)):
             try:
-                r = await self._client.get(
-                    url.format(codes=query), timeout=self._timeout,
-                    headers={"Referer": "https://finance.sina.com.cn"})
+                r = await self._client.get(url.format(codes=query),
+                                           timeout=self._timeout,
+                                           headers={"Referer": "https://finance.sina.com.cn"})
                 r.raise_for_status()
                 return self._parse_all(source, r.text, codes)
             except Exception as e:
                 logger.warning("行情源 %s 失败，切换: %s", source, e)
-                self.primary_source, self.fallback_source = (
-                    self.fallback_source, self.primary_source)
+                self.primary_source, self.fallback_source = (self.fallback_source,
+                                                             self.primary_source)
         return {}
 
     def _parse_all(self, source: str, text: str, codes: list[str]) -> dict[str, Quote]:
@@ -68,8 +69,7 @@ class MarketService:
 
     async def fetch_intraday(self, code: str) -> list[IntradayPoint]:
         try:
-            r = await self._client.get(SINA_INTRA.format(c=code),
-                                       timeout=self._timeout)
+            r = await self._client.get(SINA_INTRA.format(c=code), timeout=self._timeout)
             r.raise_for_status()
             return parse_sina_intraday(r.text)
         except Exception as e:

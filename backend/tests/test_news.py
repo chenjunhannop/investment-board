@@ -57,8 +57,8 @@ def test_dedupe_keeps_new():
 @pytest.mark.asyncio
 async def test_fetch_individual_maps_related_code(respx_mock: MockRouter):
     from app.news.service import EM_NOTICE_URL
-    respx_mock.get(EM_NOTICE_URL.format(code="000001")).mock(
-        return_value=httpx.Response(200, text=EM_FIXTURE))
+    respx_mock.get(
+        EM_NOTICE_URL.format(code="000001")).mock(return_value=httpx.Response(200, text=EM_FIXTURE))
     svc = NewsService(httpx.AsyncClient())
     items = await svc.fetch_individual(["000001"])
     assert len(items) == 1

@@ -1,8 +1,7 @@
 from app.models import Position, Quote
 
 
-def compute_positions(positions: list[Position],
-                      quotes: dict[str, Quote]) -> list[Position]:
+def compute_positions(positions: list[Position], quotes: dict[str, Quote]) -> list[Position]:
     out = []
     for p in positions:
         q = quotes.get(p.code)

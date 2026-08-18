@@ -1,4 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 Sub = Callable[[Any], None]
 
@@ -12,6 +13,7 @@ class EventType:
 
 
 class EventBus:
+
     def __init__(self):
         self._subs: dict[str, list[Sub]] = {}
 

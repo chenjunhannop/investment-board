@@ -12,7 +12,9 @@ FETCHER = Callable[[list[str]], Awaitable[dict[str, Quote]]]
 
 
 class Scheduler:
-    def __init__(self, bus: EventBus,
+
+    def __init__(self,
+                 bus: EventBus,
                  quotes_fetcher: FETCHER,
                  positions_fetcher=None,
                  news_fetcher=None,
@@ -80,8 +82,7 @@ class Scheduler:
                     self.bus.publish(EventType.POSITIONS, enriched)
                 except Exception as e:
                     logger.warning("持仓循环异常: %s", e)
-                    self.bus.publish(EventType.THS_STATUS,
-                                     {"status": "error", "message": str(e)})
+                    self.bus.publish(EventType.THS_STATUS, {"status": "error", "message": str(e)})
             await asyncio.sleep(self.positions_interval)
 
     def _apply_quotes(self, pos: list[Position]) -> list[Position]:

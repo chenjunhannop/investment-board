@@ -5,8 +5,8 @@ from app.models import NewsItem, Position, Quote
 
 
 def test_quote_construction():
-    q = Quote("600519", "贵州茅台", 1750.0, 50.0, 2.94, 1700.0, 1760.0, 1690.0,
-              1700.0, 30000, 5.2e8, datetime(2026, 8, 18, 10, 0))
+    q = Quote("600519", "贵州茅台", 1750.0, 50.0, 2.94, 1700.0, 1760.0, 1690.0, 1700.0, 30000, 5.2e8,
+              datetime(2026, 8, 18, 10, 0))
     assert q.change_pct == 2.94
     assert q.amount == 5.2e8
 

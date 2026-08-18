@@ -55,8 +55,7 @@ async def test_fetch_quotes_dedupes_and_merges(respx_mock: MockRouter):
 
 @pytest.mark.asyncio
 async def test_fetch_quotes_falls_back_when_sina_fails(respx_mock: MockRouter):
-    respx_mock.get("https://hq.sinajs.cn/list=sh600519").mock(
-        return_value=httpx.Response(500))
+    respx_mock.get("https://hq.sinajs.cn/list=sh600519").mock(return_value=httpx.Response(500))
     respx_mock.get("https://qt.gtimg.cn/q=sh600519").mock(
         return_value=httpx.Response(200, text=TENCENT_LINE))
     svc = MarketService(httpx.AsyncClient())

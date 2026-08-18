@@ -18,12 +18,17 @@ def parse_sina(text: str) -> Quote:
     price = float(f[3])
     return Quote(
         code=text.split("hq_str_")[1].split("=")[0][2:],  # "sh600519" -> "600519"
-        name=f[0], price=price,
+        name=f[0],
+        price=price,
         change=round(price - prev_close, 3),
         change_pct=round((price - prev_close) / prev_close * 100, 2),
-        open=float(f[1]), high=float(f[4]), low=float(f[5]),
-        prev_close=prev_close, volume=float(f[8]) / 100,
-        amount=float(f[9]), ts=_today(),
+        open=float(f[1]),
+        high=float(f[4]),
+        low=float(f[5]),
+        prev_close=prev_close,
+        volume=float(f[8]) / 100,
+        amount=float(f[9]),
+        ts=_today(),
     )
 
 
@@ -33,11 +38,17 @@ def parse_tencent(text: str) -> Quote:
     prev_close = float(f[4])
     price = float(f[3])
     return Quote(
-        code=f[2], name=f[1], price=price,
+        code=f[2],
+        name=f[1],
+        price=price,
         change=round(price - prev_close, 3),
         change_pct=float(f[32]),
-        open=float(f[5]), high=float(f[33]), low=float(f[34]),
-        prev_close=prev_close, volume=float(f[6]), amount=float(f[37]) * 1e4,
+        open=float(f[5]),
+        high=float(f[33]),
+        low=float(f[34]),
+        prev_close=prev_close,
+        volume=float(f[6]),
+        amount=float(f[37]) * 1e4,
         ts=_today(),
     )
 
@@ -50,9 +61,11 @@ def parse_sina_intraday(text: str) -> list[IntradayPoint]:
         parts = line.split(",")
         if len(parts) < 4:
             continue
-        pts.append(IntradayPoint(
-            time=parts[1], price=float(parts[2]),
-            avg_price=float(parts[3]),
-            volume=float(parts[4]) if len(parts) > 4 else 0.0,
-        ))
+        pts.append(
+            IntradayPoint(
+                time=parts[1],
+                price=float(parts[2]),
+                avg_price=float(parts[3]),
+                volume=float(parts[4]) if len(parts) > 4 else 0.0,
+            ))
     return pts

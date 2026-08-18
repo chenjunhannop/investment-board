@@ -11,8 +11,13 @@ async def status(request: Request):
     vault = request.app.state.vault
     return {
         "logged_in": vault.is_logged_in,
-        "sources": {"market": "ok", "news": "ok"},
-        "ths": {"status": "ok" if vault.is_logged_in else "not_logged_in"},
+        "sources": {
+            "market": "ok",
+            "news": "ok"
+        },
+        "ths": {
+            "status": "ok" if vault.is_logged_in else "not_logged_in"
+        },
     }
 
 

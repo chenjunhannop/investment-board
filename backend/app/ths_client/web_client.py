@@ -17,8 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 class ThsWebClient(ThsAdapter):
-    def __init__(self, vault: Vault, client: httpx.AsyncClient,
-                 endpoint_prefix: str, timeout: float = 10.0):
+
+    def __init__(self,
+                 vault: Vault,
+                 client: httpx.AsyncClient,
+                 endpoint_prefix: str,
+                 timeout: float = 10.0):
         self._vault = vault
         self._client = client
         self._prefix = endpoint_prefix
@@ -34,8 +38,10 @@ class ThsWebClient(ThsAdapter):
         session = self._vault.load_session()
         if session and session.get("token"):
             headers["Authorization"] = f"Bearer {session['token']}"
-        r = await self._client.get(self._prefix + path, params=params,
-                                   headers=headers, timeout=self._timeout)
+        r = await self._client.get(self._prefix + path,
+                                   params=params,
+                                   headers=headers,
+                                   timeout=self._timeout)
         r.raise_for_status()
         return r.json()
 
