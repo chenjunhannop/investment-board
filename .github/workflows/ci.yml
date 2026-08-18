@@ -24,6 +24,8 @@ jobs:
         run: cd backend && .venv/bin/mypy app
       - name: Commitlint
         run: |
+          # checkout 默认 fetch-depth=1，需先拉取 origin/main 引用才能做 --from 对比
+          git fetch origin main --depth=1 || true
           npm ci
           npx --yes @commitlint/cli --from origin/main --to HEAD
         env:
