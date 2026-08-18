@@ -42,29 +42,67 @@ def test_adapter_is_abstract():
 
 @pytest.mark.asyncio
 async def test_web_client_login_flow(tmp_path, monkeypatch, respx_mock: MockRouter):
-    """二维码登录流程可完成并持久化会话."""
+    """扫码登录流程（creatCode/getInfoNew）可完成并持久化会话."""
     monkeypatch.setenv("IB_TEST_KEYCHAIN", "1")
     from app.vault.store import Vault
     monkeypatch.setattr("app.vault.store._keyring_get", lambda s, u: "0" * 44)
     monkeypatch.setattr("app.vault.store._keyring_set", lambda s, u, p: None)
 
-    respx_mock.get("https://ths.test/qrcode").mock(
-        return_value=httpx.Response(200, json={"data": {
-            "qrcode": "qr-data"
-        }}))
-    respx_mock.get("https://ths.test/poll").mock(
-        return_value=httpx.Response(200, json={"data": {
-            "status": 1,
-            "token": "t1"
-        }}))
+    respx_mock.get("https://ths.test/scan/creatCode").mock(
+        return_value=httpx.Response(200, json={"qrid": "usk_t1"}))
+    respx_mock.get("https://ths.test/scan/creatImg?qrid=usk_t1").mock(
+        return_value=httpx.Response(200, content=b"PNGDATA"))
+    respx_mock.post("https://ths.test/scan/getInfoNew").mock(
+        return_value=httpx.Response(200, json={"status": 3}))
+    respx_mock.get("https://www.10jqka.com.cn/").mock(
+        return_value=httpx.Response(200, headers={"Set-Cookie": "u=u1; Path=/"}, json={}))
 
     vault = Vault(tmp_path)
     client = ThsWebClient(vault, httpx.AsyncClient(), endpoint_prefix="https://ths.test")
-    await client.login_qrcode()
-    ok = await client.poll_login()
-    assert ok is True
+    qr = await client.login_qrcode()
+    assert qr["qrid"] == "usk_t1"
+    assert qr["qrcode_img"] == "UE5HREFUQQ=="  # base64("PNGDATA")
+    ok = await client.poll_login("usk_t1")
+    assert ok["ok"] is True
     assert client.is_logged_in
-    assert vault.load_session()["token"] == "t1"
+    assert vault.load_session()["cookies"]["u"] == "u1"
+
+
+@pytest.mark.asyncio
+async def test_poll_login_status_machine(tmp_path, monkeypatch, respx_mock: MockRouter):
+    """轮询状态映射：0=expired, 1=waiting, 2=confirmed."""
+    monkeypatch.setenv("IB_TEST_KEYCHAIN", "1")
+    from app.vault.store import Vault
+    monkeypatch.setattr("app.vault.store._keyring_get", lambda s, u: "0" * 44)
+    monkeypatch.setattr("app.vault.store._keyring_set", lambda s, u, p: None)
+
+    def _status(n):
+        return httpx.Response(200, json={"status": n})
+
+    for status, expected in [(0, "expired"), (1, "waiting"), (2, "confirmed")]:
+        respx_mock.reset()
+        respx_mock.post("https://ths.test/scan/getInfoNew").mock(return_value=_status(status))
+        vault = Vault(tmp_path)
+        client = ThsWebClient(vault, httpx.AsyncClient(), endpoint_prefix="https://ths.test")
+        res = await client.poll_login("q")
+        assert res["ok"] is False
+        assert res["reason"] == expected
+
+
+@pytest.mark.asyncio
+async def test_login_qrcode_graceful_degrade(tmp_path, monkeypatch, respx_mock: MockRouter):
+    """CreatCode 失败时返回 error 而非抛出异常."""
+    monkeypatch.setenv("IB_TEST_KEYCHAIN", "1")
+    from app.vault.store import Vault
+    monkeypatch.setattr("app.vault.store._keyring_get", lambda s, u: "0" * 44)
+    monkeypatch.setattr("app.vault.store._keyring_set", lambda s, u, p: None)
+
+    respx_mock.get("https://ths.test/scan/creatCode").mock(return_value=httpx.Response(403))
+    vault = Vault(tmp_path)
+    client = ThsWebClient(vault, httpx.AsyncClient(), endpoint_prefix="https://ths.test")
+    res = await client.login_qrcode()
+    assert res["qrcode_img"] == ""
+    assert "error" in res
 
 
 def test_web_client_has_no_trade_methods():
