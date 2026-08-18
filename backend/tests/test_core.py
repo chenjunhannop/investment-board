@@ -1,3 +1,4 @@
+"""核心层（事件总线/持仓计算/调度器）的单元测试."""
 import asyncio
 from datetime import datetime
 
@@ -10,6 +11,7 @@ from app.models import Position, Quote
 
 
 def test_compute_positions():
+    """绑定行情后计算市值/盈亏与涨跌百分比."""
     p = Position("600519", "贵州茅台", 100, 1600.0, available=100)
     q = Quote("600519", "贵州茅台", 1750.0, 50.0, 3.125, 1700.0, 1760.0, 1690.0, 1700.0, 0, 0,
               datetime.now())
@@ -21,12 +23,14 @@ def test_compute_positions():
 
 
 def test_compute_positions_keeps_missing_quote():
+    """无匹配行情时持仓字段保持默认值."""
     p = Position("000001", "平安银行", 100, 10.0)
     out = compute_positions([p], {})
     assert out[0].profit == 0.0
 
 
 def test_event_bus_dispatch():
+    """订阅者能收到 publish 分发的载荷."""
     bus = EventBus()
     got = []
     bus.subscribe("QUOTES", lambda p: got.append(p))
@@ -36,6 +40,7 @@ def test_event_bus_dispatch():
 
 @pytest.mark.asyncio
 async def test_scheduler_quotes_loop_publishes():
+    """调度器行情循环会周期发布行情事件."""
 
     async def fetch_quotes(codes):
         return {

@@ -1,5 +1,4 @@
-# backend/tests/test_api.py
-
+"""API 路由的单元测试：状态/登出与新闻已读接口."""
 import httpx
 import pytest
 from fastapi import FastAPI
@@ -27,6 +26,7 @@ def _make_app(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_status_and_logout(tmp_path, monkeypatch):
+    """未登录时 /api/status 返回 200 且 logout 返回 ok."""
     app = _make_app(tmp_path, monkeypatch)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                  base_url="http://test") as c:
@@ -42,6 +42,7 @@ async def test_status_and_logout(tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_mark_news_read(tmp_path, monkeypatch):
+    """标记新闻已读接口返回 ok."""
     app = _make_app(tmp_path, monkeypatch)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
                                  base_url="http://test") as c:

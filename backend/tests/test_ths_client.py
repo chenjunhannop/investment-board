@@ -1,3 +1,4 @@
+"""同花顺客户端（解析/抽象接口/登录流程/合规）的单元测试."""
 from pathlib import Path
 
 import httpx
@@ -20,24 +21,28 @@ POSITIONS = """[
 
 
 def test_parse_watchlist():
+    """解析自选列表 JSON 得到 Stock 列表."""
     stocks = parse_watchlist(WATCHLIST)
     assert stocks[0].code == "600519"
     assert stocks[0].name == "贵州茅台"
 
 
 def test_parse_positions():
+    """解析持仓 JSON 得到 Position 列表."""
     pos = parse_positions(POSITIONS)
     assert pos[0].quantity == 100
     assert pos[0].cost_price == 1600.0
 
 
 def test_adapter_is_abstract():
+    """抽象基类不可实例化."""
     with pytest.raises(TypeError):
         ThsAdapter()  # 抽象类不可实例化
 
 
 @pytest.mark.asyncio
 async def test_web_client_login_flow(tmp_path, monkeypatch, respx_mock: MockRouter):
+    """二维码登录流程可完成并持久化会话."""
     monkeypatch.setenv("IB_TEST_KEYCHAIN", "1")
     from app.vault.store import Vault
     monkeypatch.setattr("app.vault.store._keyring_get", lambda s, u: "0" * 44)
@@ -63,6 +68,7 @@ async def test_web_client_login_flow(tmp_path, monkeypatch, respx_mock: MockRout
 
 
 def test_web_client_has_no_trade_methods():
+    """客户端源码不得出现交易语义标识符."""
     forbidden = ["place_order", "buy", "sell", "trade", "order"]
     src = (Path(__file__).resolve().parent.parent / "app/ths_client/web_client.py")
     text = src.read_text()

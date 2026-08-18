@@ -1,4 +1,4 @@
-# backend/tests/test_news.py
+"""新闻解析与服务的单元测试（公告/快讯解析、去重与代码映射）."""
 from datetime import datetime
 
 import httpx
@@ -32,6 +32,7 @@ CLS_FIXTURE = """{
 
 
 def test_parse_eastmoney():
+    """解析东财公告得到个股类型与关联代码."""
     items = parse_eastmoney(EM_FIXTURE)
     assert items[0].news_type == "individual"
     assert items[0].related_codes == ["000001"]
@@ -39,6 +40,7 @@ def test_parse_eastmoney():
 
 
 def test_parse_cls():
+    """解析财联社快讯得到全局类型."""
     items = parse_cls(CLS_FIXTURE)
     assert items[0].news_type == "global"
     assert items[0].source == "cls"
@@ -49,6 +51,7 @@ def _stub(i: str) -> NewsItem:
 
 
 def test_dedupe_keeps_new():
+    """去重后仅保留未见过的新闻条目."""
     svc = NewsService(httpx.AsyncClient())
     new = svc.dedupe([_stub("1"), _stub("2")], seen_ids={"1"})
     assert [i.id for i in new] == ["2"]
@@ -56,6 +59,7 @@ def test_dedupe_keeps_new():
 
 @pytest.mark.asyncio
 async def test_fetch_individual_maps_related_code(respx_mock: MockRouter):
+    """按代码拉取个股公告并映射关联代码."""
     from app.news.service import EM_NOTICE_URL
     respx_mock.get(
         EM_NOTICE_URL.format(code="000001")).mock(return_value=httpx.Response(200, text=EM_FIXTURE))

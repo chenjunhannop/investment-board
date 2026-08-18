@@ -1,4 +1,4 @@
-# backend/app/main.py
+"""FastAPI 应用装配：lifespan 启动各服务与调度器，提供 uvicorn main() 入口."""
 import logging
 from contextlib import asynccontextmanager
 
@@ -21,6 +21,11 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """应用生命周期：启动时装配各服务并启动调度器，关闭时停止并清理连接.
+
+    Args:
+        app: 正在启动/关闭的 FastAPI 实例，运行期间挂载 vault/ths/bus/scheduler.
+    """
     client = httpx.AsyncClient()
     vault = Vault(settings.data_dir)
     market = MarketService(client)
@@ -29,11 +34,20 @@ async def lifespan(app: FastAPI):
     bus = EventBus()
 
     async def positions_fetcher():
+        """抓取同花顺持仓，未登录时返回空列表."""
         if ths.is_logged_in:
             return await ths.query_positions()
         return []
 
     async def news_fetcher(codes):
+        """抓取个股公告与全局快讯，未登录时仅返回全局快讯.
+
+        Args:
+            codes: 需要拉取公告的股票代码列表.
+
+        Returns:
+            个股公告与全局快讯的合并列表.
+        """
         ind = await news.fetch_individual(codes) if ths.is_logged_in else []
         glb = await news.fetch_global()
         return ind + glb
@@ -65,3 +79,14 @@ app.add_middleware(CORSMiddleware,
                    allow_headers=["*"])
 app.include_router(router, prefix="/api")
 app.include_router(ws_router)
+
+
+def main() -> None:
+    """启动 uvicorn 开发服务器（仅监听本机）."""
+    import uvicorn
+
+    uvicorn.run("app.main:app", host=settings.host, port=settings.port, reload=False)
+
+
+if __name__ == "__main__":
+    main()

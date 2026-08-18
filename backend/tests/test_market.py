@@ -1,3 +1,4 @@
+"""行情解析与服务（去重合并、源切换）的单元测试."""
 import httpx
 import pytest
 from respx import MockRouter
@@ -19,6 +20,7 @@ TENCENT_LINE = ('v_sh600519="1~贵州茅台~600519~1750.00~1700.00~1700.00~'
 
 
 def test_parse_sina_quote():
+    """解析新浪行情行得到正确的代码/名称/价格与涨跌字段."""
     q = parse_sina(SINA_LINE)
     assert q.code == "600519"
     assert q.name == "贵州茅台"
@@ -29,6 +31,7 @@ def test_parse_sina_quote():
 
 
 def test_parse_tencent_quote():
+    """解析腾讯行情行得到正确的代码/价格/涨跌幅."""
     q = parse_tencent(TENCENT_LINE)
     assert q.code == "600519"
     assert q.price == 1750.0
@@ -36,6 +39,7 @@ def test_parse_tencent_quote():
 
 
 def test_parse_sina_intraday():
+    """解析新浪分时文本得到若干日内数据点."""
     text = '1,09:30,1700.00,1700.00,100\n2,09:31,1701.00,1700.50,200\n'
     pts = parse_sina_intraday(text)
     assert len(pts) == 2
@@ -45,6 +49,7 @@ def test_parse_sina_intraday():
 
 @pytest.mark.asyncio
 async def test_fetch_quotes_dedupes_and_merges(respx_mock: MockRouter):
+    """重复代码去重合并后返回去重的行情结果."""
     respx_mock.get("https://hq.sinajs.cn/list=sh600519,sz000001").mock(
         return_value=httpx.Response(200, text=SINA_LINE + "\n" + SINA_LINE_SZ))
     svc = MarketService(httpx.AsyncClient())
@@ -55,6 +60,7 @@ async def test_fetch_quotes_dedupes_and_merges(respx_mock: MockRouter):
 
 @pytest.mark.asyncio
 async def test_fetch_quotes_falls_back_when_sina_fails(respx_mock: MockRouter):
+    """新浪源失败时自动切换到腾讯源."""
     respx_mock.get("https://hq.sinajs.cn/list=sh600519").mock(return_value=httpx.Response(500))
     respx_mock.get("https://qt.gtimg.cn/q=sh600519").mock(
         return_value=httpx.Response(200, text=TENCENT_LINE))

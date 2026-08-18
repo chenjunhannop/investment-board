@@ -1,4 +1,4 @@
-# backend/app/config.py
+"""全局配置：从环境变量读取运行参数，提供唯一 settings 单例."""
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,6 +6,8 @@ from pathlib import Path
 
 @dataclass
 class Settings:
+    """后端运行配置（主机、端口、数据目录与各轮询周期）."""
+
     host: str = "127.0.0.1"
     port: int = 8210
     data_dir: Path = Path.home() / ".investment-board"

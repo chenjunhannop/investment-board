@@ -1,3 +1,7 @@
+"""后台调度器：以注入式 fetcher 周期抓取行情/持仓/新闻并通过事件总线发布.
+
+各循环对单次抓取异常做兜底（记录日志后继续），避免单次网络抖动中断后台任务.
+"""
 import asyncio
 import logging
 import random
@@ -12,6 +16,7 @@ FETCHER = Callable[[list[str]], Awaitable[dict[str, Quote]]]
 
 
 class Scheduler:
+    """注入式 fetcher 的周期调度器，驱动行情/持仓/新闻三个后台循环."""
 
     def __init__(self,
                  bus: EventBus,
@@ -22,6 +27,18 @@ class Scheduler:
                  positions_interval: float = 10.0,
                  news_interval: float = 60.0,
                  ths_adapter=None):
+        """初始化调度器并保存各 fetcher 与周期配置.
+
+        Args:
+            bus: 事件总线，抓取结果经它发布.
+            quotes_fetcher: 按代码列表抓取实时行情，返回代码到 Quote 的字典.
+            positions_fetcher: 抓取持仓列表的可等待回调，登录态下才被调用.
+            news_fetcher: 按代码列表抓取新闻列表的可等待回调.
+            quotes_interval: 行情轮询周期（秒）.
+            positions_interval: 持仓轮询周期（秒）.
+            news_interval: 新闻轮询周期（秒）.
+            ths_adapter: 同花顺客户端，用于判断登录态（可为 None）.
+        """
         self.bus = bus
         self._quotes_fetcher = quotes_fetcher
         self._positions_fetcher = positions_fetcher
@@ -38,9 +55,11 @@ class Scheduler:
         self._running = False
 
     def _spawn(self, coro) -> asyncio.Task:
+        """将协程包装为后台任务并返回，便于集中取消."""
         return asyncio.create_task(coro)
 
     def start(self) -> None:
+        """启动三个后台循环任务；已运行时直接返回（幂等）."""
         if self._running:
             return
         self._running = True
@@ -51,17 +70,20 @@ class Scheduler:
         ]
 
     def stop(self) -> None:
+        """停止调度：置运行标记为 False 并取消全部后台任务."""
         self._running = False
         for t in self._tasks:
             t.cancel()
 
     def _collect_codes(self) -> list[str]:
+        """汇总当前已知代码（行情 key 与持仓代码并集）并排序返回."""
         codes = set(self.quotes.keys())
         for p in self.positions:
             codes.add(p.code)
         return sorted(codes)
 
     async def _quotes_loop(self):
+        """周期抓取行情并发布；异常仅记日志，等待下个周期重试."""
         while self._running:
             try:
                 codes = self._collect_codes()
@@ -70,10 +92,12 @@ class Scheduler:
                 self.quotes = await self._quotes_fetcher(codes)
                 self.bus.publish(EventType.QUOTES, self.quotes)
             except Exception as e:
+                # 网络抖动等偶发异常兜底：记录后继续，避免后台循环中断
                 logger.warning("行情循环异常: %s", e)
             await asyncio.sleep(self.quotes_interval + random.uniform(0, 0.5))
 
     async def _positions_loop(self):
+        """登录态下周期抓取持仓、绑定行情后发布；异常发布 THS_STATUS 错误事件."""
         while self._running:
             if self._positions_fetcher and self._ths and self._ths.is_logged_in:
                 try:
@@ -81,15 +105,18 @@ class Scheduler:
                     enriched = self._apply_quotes(self.positions)
                     self.bus.publish(EventType.POSITIONS, enriched)
                 except Exception as e:
+                    # 持仓拉取偶发失败兜底：记录并广播错误状态，下个周期重试
                     logger.warning("持仓循环异常: %s", e)
                     self.bus.publish(EventType.THS_STATUS, {"status": "error", "message": str(e)})
             await asyncio.sleep(self.positions_interval)
 
     def _apply_quotes(self, pos: list[Position]) -> list[Position]:
+        """用当前缓存的行情填充持仓的市值/盈亏/当日涨跌字段."""
         from app.core.portfolio import compute_positions
         return compute_positions(pos, self.quotes)
 
     async def _news_loop(self):
+        """周期抓取新闻，去重后保留最新 200 条并发布；异常仅记日志."""
         while self._running:
             if self._news_fetcher:
                 try:
@@ -101,5 +128,6 @@ class Scheduler:
                         self.news = self.news[:200]
                         self.bus.publish(EventType.NEWS, self.news)
                 except Exception as e:
+                    # 新闻抓取偶发失败兜底：记录后继续，避免后台循环中断
                     logger.warning("新闻循环异常: %s", e)
             await asyncio.sleep(self.news_interval)
