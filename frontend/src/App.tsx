@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useApp } from './store';
 import Dashboard from './pages/Dashboard';
-import Positions from './pages/Positions';
 import News from './pages/News';
+import Positions from './pages/Positions';
 import Settings from './pages/Settings';
+import { useApp } from './store';
 
 type Page = 'dashboard' | 'positions' | 'news' | 'settings';
 

@@ -1,6 +1,11 @@
 import type { NewsItem } from '../types';
 
-export default function NewsCard({ item, onRead }: { item: NewsItem; onRead: () => void }) {
+interface NewsCardProps {
+  item: NewsItem;
+  onRead: () => void;
+}
+
+export default function NewsCard({ item, onRead }: NewsCardProps) {
   return (
     <a
       className={`news-card ${item.read ? 'read' : ''}`}

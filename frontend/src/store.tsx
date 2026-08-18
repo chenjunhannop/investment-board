@@ -17,6 +17,8 @@ interface AppState {
   refresh: () => Promise<void>;
 }
 
+let wsStarted = false;
+
 export const useApp = create<AppState>((set, get) => ({
   quotes: {},
   positions: [],
@@ -24,12 +26,16 @@ export const useApp = create<AppState>((set, get) => ({
   status: null,
   connected: false,
   init() {
-    connectWS((ev) => {
-      const s = get();
-      if (ev.type === 'quotes') s.setQuotes(ev.data as Record<string, Quote>);
-      if (ev.type === 'positions') s.setPositions(ev.data as Position[]);
-      if (ev.type === 'news') s.setNews(ev.data as NewsItem[]);
-    });
+    // init 幂等：只在首次调用时建立 WebSocket，避免 StrictMode 双调用重复连接
+    if (!wsStarted) {
+      wsStarted = true;
+      connectWS((ev) => {
+        const s = get();
+        if (ev.type === 'quotes') s.setQuotes(ev.data);
+        if (ev.type === 'positions') s.setPositions(ev.data);
+        if (ev.type === 'news') s.setNews(ev.data);
+      });
+    }
     get().refresh();
   },
   setQuotes: (q) => set({ quotes: q }),

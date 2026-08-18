@@ -1,7 +1,7 @@
-import { useApp } from '../store';
 import PriceCard from '../components/PriceCard';
 import PositionsSummary from '../components/PositionsSummary';
 import Sparkline from '../components/Sparkline';
+import { useApp } from '../store';
 
 export default function Dashboard() {
   const quotes = useApp((s) => s.quotes);

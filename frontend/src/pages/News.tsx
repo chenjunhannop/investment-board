@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { useApp } from '../store';
 import NewsCard from '../components/NewsCard';
+import { useApp } from '../store';
 
-const TAB_LABELS: Record<'all' | 'individual' | 'global', string> = {
+type NewsTab = 'all' | 'individual' | 'global';
+
+const TAB_LABELS: Record<NewsTab, string> = {
   all: '全部',
   individual: '个股',
   global: '全局快讯',
@@ -11,7 +13,7 @@ const TAB_LABELS: Record<'all' | 'individual' | 'global', string> = {
 export default function News() {
   const news = useApp((s) => s.news);
   const markRead = useApp((s) => s.markRead);
-  const [tab, setTab] = useState<'all' | 'individual' | 'global'>('all');
+  const [tab, setTab] = useState<NewsTab>('all');
   const items = news.filter((n) => tab === 'all' || n.news_type === tab);
   return (
     <div className="page">

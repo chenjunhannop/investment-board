@@ -40,7 +40,9 @@ export interface Status {
   sources: Record<string, string>;
   ths: { status: string };
 }
-export interface WsEvent {
-  type: string;
-  data: unknown;
-}
+export type WsEvent =
+  | { type: 'quotes'; data: Record<string, Quote> }
+  | { type: 'positions'; data: Position[] }
+  | { type: 'news'; data: NewsItem[] }
+  | { type: 'ths_status'; data: { status: string; message?: string } }
+  | { type: 'source_status'; data: Record<string, string> };

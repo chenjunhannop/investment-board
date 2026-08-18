@@ -1,6 +1,10 @@
 import type { Position } from '../types';
 
-export default function PositionsSummary({ positions }: { positions: Position[] }) {
+interface PositionsSummaryProps {
+  positions: Position[];
+}
+
+export default function PositionsSummary({ positions }: PositionsSummaryProps) {
   const totalProfit = positions.reduce((s, p) => s + p.profit, 0);
   const totalValue = positions.reduce((s, p) => s + p.market_value, 0);
   return (

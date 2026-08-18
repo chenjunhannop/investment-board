@@ -1,6 +1,10 @@
 import type { Quote } from '../types';
 
-export default function PriceCard({ q }: { q: Quote }) {
+interface PriceCardProps {
+  q: Quote;
+}
+
+export default function PriceCard({ q }: PriceCardProps) {
   const up = q.change >= 0;
   return (
     <div className="price-card">

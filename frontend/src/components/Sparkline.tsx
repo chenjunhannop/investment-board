@@ -1,7 +1,11 @@
-import { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import { useEffect, useRef } from 'react';
 
-export default function Sparkline({ data }: { data: number[] }) {
+interface SparklineProps {
+  data: number[];
+}
+
+export default function Sparkline({ data }: SparklineProps) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!ref.current) return;
