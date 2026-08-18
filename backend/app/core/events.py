@@ -1,4 +1,4 @@
-"""进程内事件总线：调度器发布行情/持仓/新闻事件，订阅方按类型接收."""
+"""进程内事件总线：调度器发布行情/新闻事件，订阅方按类型接收."""
 from collections.abc import Callable
 from typing import Any
 
@@ -9,9 +9,7 @@ class EventType:
     """事件类型常量集合，作为 publish/subscribe 的事件名."""
 
     QUOTES = "quotes"
-    POSITIONS = "positions"
     NEWS = "news"
-    THS_STATUS = "ths_status"
     SOURCE_STATUS = "source_status"
 
 

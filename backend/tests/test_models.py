@@ -1,7 +1,7 @@
 """领域模型 dataclass 的单元测试."""
 from datetime import datetime
 
-from app.models import NewsItem, Position, Quote
+from app.models import NewsItem, Quote
 
 
 def test_quote_construction():
@@ -10,13 +10,6 @@ def test_quote_construction():
               datetime(2026, 8, 18, 10, 0))
     assert q.change_pct == 2.94
     assert q.amount == 5.2e8
-
-
-def test_position_defaults():
-    """构造 Position 后行情相关字段默认值正确."""
-    p = Position("000001", "平安银行", 1000, 12.0)
-    assert p.market_value == 0.0
-    assert p.profit == 0.0
 
 
 def test_news_item_related_codes_isolated():

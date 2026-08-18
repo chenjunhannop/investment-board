@@ -1,4 +1,4 @@
-"""领域数据模型：自选股、持仓、实时行情、日内分时与新闻条目.
+"""领域数据模型：自选股、实时行情、日内分时与新闻条目.
 
 全部为轻量 dataclass，仅承载数据不含业务逻辑；字段契约保持稳定.
 """
@@ -13,23 +13,6 @@ class Stock:
     code: str  # "600519"
     name: str  # "贵州茅台"
     market: str = "SH"  # "SH" / "SZ"
-
-
-@dataclass
-class Position:
-    """一条持仓记录（含行情绑定后的市值/盈亏/当日涨跌快照）."""
-
-    code: str
-    name: str
-    quantity: int  # 持股数量(股)
-    cost_price: float  # 成本价
-    available: int = 0  # 可用数量
-    current_price: float = 0.0
-    market_value: float = 0.0
-    profit: float = 0.0
-    profit_pct: float = 0.0
-    day_change: float = 0.0
-    day_change_pct: float = 0.0
 
 
 @dataclass

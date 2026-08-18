@@ -10,8 +10,7 @@ logger = logging.getLogger(__name__)
 ws_router = APIRouter()
 
 # 需要向客户端推送的全部事件类型
-_EVENTS = (EventType.QUOTES, EventType.POSITIONS, EventType.NEWS, EventType.THS_STATUS,
-           EventType.SOURCE_STATUS)
+_EVENTS = (EventType.QUOTES, EventType.NEWS, EventType.SOURCE_STATUS)
 
 
 class ConnectionManager:
