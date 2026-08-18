@@ -15,16 +15,20 @@ class ThsAdapter(ABC):
         """获取登录二维码数据.
 
         Returns:
-            包含 ``qrcode_data`` 字段的二维码数据字典.
+            包含 ``qrid`` 与 ``qrcode_img``（base64 PNG）字段的字典.
         """
         ...
 
     @abstractmethod
-    async def poll_login(self) -> bool:
-        """轮询登录状态，成功后保存会话凭据.
+    async def poll_login(self, qrid: str) -> dict:
+        """轮询扫码登录状态，成功后捕获登录态 cookie 并持久化.
+
+        Args:
+            qrid: 扫码登录二维码 ID（来自 login_qrcode）.
 
         Returns:
-            登录成功返回 True，仍在等待返回 False.
+            {"ok": bool, "reason": "expired"|"waiting"|"confirmed"} 状态字典；
+            ok 为 True 表示登录成功.
         """
         ...
 

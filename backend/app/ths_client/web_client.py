@@ -3,6 +3,7 @@
 只读约束：本模块仅负责登录与查询（自选/持仓），严禁添加任何交易类方法.
 接口 endpoint 的逆向值与字段说明见 README.md.
 """
+import base64
 import json
 import logging
 from typing import Any
@@ -24,31 +25,47 @@ class ThsWebClient(ThsAdapter):
                  vault: Vault,
                  client: httpx.AsyncClient,
                  endpoint_prefix: str,
-                 timeout: float = 10.0):
+                 timeout: float = 10.0,
+                 watchlist_url: str = "",
+                 positions_url: str = ""):
         """初始化只读客户端.
 
         Args:
             vault: 会话凭据存储.
             client: 共享的 httpx 异步客户端.
-            endpoint_prefix: 同花顺接口地址前缀.
+            endpoint_prefix: 同花顺登录接口地址前缀（默认 upass.10jqka.com.cn）.
             timeout: 单次请求超时秒数，默认 10 秒.
+            watchlist_url: 自选查询完整 URL；空串表示未配置.
+            positions_url: 持仓查询完整 URL；空串表示未配置.
         """
         self._vault = vault
         self._client = client
         self._prefix = endpoint_prefix
         self._timeout = timeout
-        self._pending_qr: dict | None = None
+        self._watchlist_url = watchlist_url
+        self._positions_url = positions_url
+        self._pending_qrid: str | None = None
 
     @property
     def is_logged_in(self) -> bool:
         """是否已处于登录状态."""
         return self._vault.is_logged_in
 
+    def _apply_session(self) -> None:
+        """把 Vault 中保存的 cookie 恢复为客户端 cookie（幂等）.
+
+        Returns:
+            None.
+        """
+        session = self._vault.load_session()
+        if session and session.get("cookies"):
+            self._client.cookies.update(session["cookies"])
+
     async def _get_json(self, path: str, **params: Any) -> dict[str, Any]:
-        """请求同花顺接口并返回 JSON 载荷.
+        """请求同花顺接口并返回 JSON 载荷（cookie 鉴权）.
 
         Args:
-            path: 接口路径（如 "/qrcode"）.
+            path: 接口路径.
             **params: 附加查询参数.
 
         Returns:
@@ -57,52 +74,89 @@ class ThsWebClient(ThsAdapter):
         Raises:
             httpx.HTTPStatusError: 接口返回非 2xx 状态码时抛出.
         """
-        headers = {}
-        session = self._vault.load_session()
-        if session and session.get("token"):
-            headers["Authorization"] = f"Bearer {session['token']}"
-        r = await self._client.get(self._prefix + path,
-                                   params=params,
-                                   headers=headers,
-                                   timeout=self._timeout)
+        r = await self._client.get(self._prefix + path, params=params, timeout=self._timeout)
         r.raise_for_status()
         data: dict[str, Any] = r.json()
         return data
 
     async def login_qrcode(self) -> dict:
-        """获取登录二维码数据.
+        """获取扫码登录二维码.
+
+        请求 upass 的 creatCode 拿 qrid，再请求 creatImg 拿二维码 PNG，
+        以 base64 返回供前端 <img> 展示.
 
         Returns:
-            包含 ``qrcode_data`` 字段的字典；同花顺接口不可用时返回空二维码并
-            附带 ``error`` 说明（优雅降级，不抛出异常）.
+            {"qrid": str, "qrcode_img": str(base64 png)}；失败时含 "error" 说明.
         """
         try:
-            data = await self._get_json("/qrcode")
+            r = await self._client.get(
+                self._prefix + "/scan/creatCode",
+                timeout=self._timeout,
+            )
+            r.raise_for_status()
+            data = r.json()
+            qrid = data.get("qrid", "")
+            if not qrid:
+                return {"qrid": "", "qrcode_img": "", "error": "creatCode 未返回 qrid"}
+            img = await self._client.get(
+                self._prefix + f"/scan/creatImg?qrid={qrid}",
+                timeout=self._timeout,
+            )
+            img.raise_for_status()
+            b64 = base64.b64encode(img.content).decode("ascii")
+            self._pending_qrid = qrid
+            return {"qrid": qrid, "qrcode_img": b64}
         except Exception as e:
             logger.warning("获取登录二维码失败（第三方接口可能已变动）: %s", e)
             return {
-                "qrcode_data": "",
+                "qrid": "",
+                "qrcode_img": "",
                 "error": f"同花顺接口暂时不可用（{e.__class__.__name__}）",
             }
-        self._pending_qr = data.get("data", {})
-        return {"qrcode_data": self._pending_qr.get("qrcode", "")}
 
-    async def poll_login(self) -> bool:
-        """轮询登录状态，成功后保存会话凭据.
+    async def poll_login(self, qrid: str) -> dict:
+        """轮询扫码登录状态，成功后捕获登录态 cookie 并持久化.
+
+        Args:
+            qrid: 扫码登录二维码 ID.
 
         Returns:
-            登录成功返回 True，否则返回 False.
+            {"ok": True} 登录成功；否则 {"ok": False, "reason": ...}.
         """
-        data = await self._get_json("/poll")
-        status = data.get("data", {}).get("status", 0)
+        data = {
+            "qrid": qrid,
+            "state": 1,
+            "source": "pc_web",
+            "page_source": "web_screen",
+            "request_type": "login",
+        }
+        try:
+            r = await self._client.post(
+                self._prefix + "/scan/getInfoNew",
+                data=data,
+                timeout=self._timeout,
+            )
+            r.raise_for_status()
+            res = r.json()
+            status = int(res.get("status", 0))
+        except Exception as e:
+            logger.warning("轮询扫码状态失败: %s", e)
+            return {"ok": False, "reason": "waiting"}
+        if status == 0:
+            return {"ok": False, "reason": "expired"}
         if status == 1:
-            token = data["data"].get("token")
-            self._vault.save_session({
-                "token": token,
-                "user": data["data"].get("user"),
-            })
-            return True
-        return False
+            return {"ok": False, "reason": "waiting"}
+        if status == 2:
+            return {"ok": False, "reason": "confirmed"}
+        # status == 3：验证成功，跟随跳转捕获登录态 cookie
+        redir = "https://www.10jqka.com.cn/"
+        try:
+            await self._client.get(redir, timeout=self._timeout)
+        except Exception as e:
+            logger.warning("捕获登录态 cookie 失败: %s", e)
+        cookies = {k: v for k, v in self._client.cookies.items()}
+        self._vault.save_session({"cookies": cookies})
+        return {"ok": True}
 
     async def query_watchlist(self) -> list[Stock]:
         """查询当前自选股列表.

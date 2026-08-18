@@ -57,7 +57,7 @@ async def login_poll(request: Request):
         request: FastAPI 请求，携带挂载了 ths 的 app.state.
 
     Returns:
-        {"ok": bool}，表示本次轮询是否已完成登录.
+        {"ok": bool, "reason": str|None}，表示本次轮询的扫码状态.
 
     Raises:
         HTTPException: 503 当同花顺客户端未注入.
@@ -65,7 +65,11 @@ async def login_poll(request: Request):
     ths = request.app.state.ths
     if ths is None:
         raise HTTPException(status_code=503, detail="THS 客户端未配置")
-    return {"ok": await ths.poll_login()}
+    body = await request.json()
+    qrid = (body or {}).get("qrid", "")
+    if not qrid:
+        return {"ok": False, "reason": "waiting"}
+    return await ths.poll_login(qrid)
 
 
 @router.post("/logout")
