@@ -3,6 +3,7 @@ import { useApp } from './store'
 import Dashboard from './pages/Dashboard'
 import Positions from './pages/Positions'
 import News from './pages/News'
+import Settings from './pages/Settings'
 
 type Page = 'dashboard' | 'positions' | 'news' | 'settings'
 
@@ -31,7 +32,7 @@ export default function App() {
       {page === 'dashboard' && <Dashboard />}
       {page === 'positions' && <Positions />}
       {page === 'news' && <News />}
-      {page === 'settings' && <div className="page">设置页（Task 13 实现）</div>}
+      {page === 'settings' && <Settings />}
     </div>
   )
 }
