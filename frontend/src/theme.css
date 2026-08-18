@@ -122,14 +122,88 @@ body {
   display: flex;
   gap: 32px;
   padding: 14px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--panel);
   border: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 13px;
+  color: var(--muted);
 }
 .summary-card b {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   margin-left: 6px;
+  color: var(--text);
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.tbl th,
+.tbl td {
+  text-align: right;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.tbl th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.tbl th:first-child,
+.tbl td:first-child {
+  text-align: left;
+  font-family: var(--font-data);
+  font-size: 12px;
+}
+.tbl tbody tr:hover {
+  background: var(--panel-hover);
+}
+.tbl tr:last-child td {
+  border-bottom: none;
+}
+
+.news-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.news-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+.news-card:hover {
+  background: var(--panel-hover);
+  transform: translateY(-1px);
+}
+.news-card .news-title {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.news-card .news-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+.news-card.read {
+  opacity: 0.6;
 }
 
 .grid {
