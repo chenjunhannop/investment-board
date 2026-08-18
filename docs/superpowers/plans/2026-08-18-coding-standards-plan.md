@@ -638,3 +638,26 @@ git push
 - [ ] **Step 5: 向用户汇报**
 
 汇报要点：规范文档路径、双端工具链配置、深度整理结果（docstring 覆盖率、类型注解、lint 清零）、验收结果、commit 列表、遗留事项（如有）。
+
+---
+
+## 执行记录（As-Built）
+
+> 全部 8 任务已完成，最终验收 `make check && make lint && make typecheck && make test && make build` 全绿；后端/前端端到端冒烟通过。本计划已整体落地并推送。
+
+| 任务 | commit | 结果 | 偏差/说明 |
+| --- | --- | --- | --- |
+| Task 1 规范文档 + .editorconfig | `a64ecd0` | ✅ | 四份文档 + 根 `.editorconfig` 按计划落地，无偏差。 |
+| Task 2 后端工具链配置 + 基线 + 格式化 | `7d9cbb3` | ✅ | ① yapf 对目录做 diff 校验需加 `-r`（Makefile/CI 中 `yapf -dr`）；② 基线非 D 错误仅 2 个（比计划预期的 16 个少，多为 D10x）；③ ruff D400/D415 强制 docstring 句末用 ASCII `.`，故全项目 docstring 结尾统一用英文句号而非中文 `。`。 |
+| Task 3 后端深度重构 A（models/market/news/vault） | `ba5d4e9` | ✅ | ① `parse_tencent` 增加 `ValueError` guard（修复 mypy union-attr 报错，`re.search` 可能返回 None）；② `web_client.py` 在此任务仅加 1 行类型注解（`_json_text` 返回类型）；③ `logging %` 格式化保留不改（惰性求值，避免无谓 f-string 开销）。 |
+| Task 4 后端深度重构 B（ths_client/core/api/main/config） | `ad49df7` | ✅ | ① 本任务被中断一次，由新 worker 接续完成：ths_client 3 文件先改未提交，接续 worker 保留原样继续；② 为 8 个包级 `__init__.py`（`backend/app/**/__init__.py` + `backend/tests/__init__.py`）补模块 docstring 清零 D104；③ `scheduler.py` 的 `except Exception` 保留（网络抖动兜底，docstring 已注明）。 |
+| Task 5 前端工具链配置 + 全量格式化 | `fbc9333` | ✅ | vite.config.ts 被 tsc 解析报错（allowDefaultProject 方式不稳），改为在 `tsconfig.json` 的 `include` 中追加 `vite.config.ts`（更稳，tsc -b 一次通过）。 |
+| Task 6 前端深度重构（f2e-spec 手工核对） | `91b9d69` | ✅ | ① Settings/Positions/main.tsx/client.ts/ws.ts 5 个文件核对后已符合规范、无需改动；② `WsEvent` 必须用 `type` 声明（可辨识联合，interface 无法实现 discriminated union）。 |
+| Task 7 Git 提交规范 + CI + Makefile | `7c10609` | ✅ | ① 根目录新增 `package.json`（commitlint 解析用，`commitlint-config-ali` 是 CJS 包）；② commitlint v21 的 `--from` 语义与文档不同，实际用 `--from origin/main --to HEAD`；③ CI backend job 需显式 `python -m venv .venv` 再装依赖；④ commit message 用 `chore:`（阿里 type-enum 无 `ci` 类型）；⑤ mypy 暴露 `store.py` 中 `json.loads` 返回 `Any`，已修复（`isinstance dict` guard）。 |
+| 主 agent 额外修复 | `35207cd` | ✅ | CI commitlint 步骤补 `git fetch origin main --depth=1`（checkout 默认 depth=1，无 origin/main 引用导致 `--from` 对比失败）。 |
+| Task 8 最终验收 + 执行记录 + 推送 | 本提交 | ✅ | `make check && make lint && make typecheck && make test && make build` 全绿（合规 OK / lint 零错 / mypy 23 文件零错 / 29 passed / build 成功，仅 chunk>500kB 提示）；后端冒烟 `GET /api/status` → 200 `{"logged_in":false,"sources":{"market":"ok","news":"ok"},"ths":{"status":"not_logged_in"}}`；前端 `npm run dev` → 200，title 为 Investment Board。 |
+
+**遗留事项**：
+- 前端 bundle 1.19MB（gzip 394KB），build 有 chunk>500kB 警告，属已知、不影响交付；如需可后续做代码分割（动态 import / manualChunks）。
+- 无其他功能/契约层面的遗留。
+
