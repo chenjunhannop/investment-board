@@ -684,3 +684,49 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+## 执行记录（As-Built）
+
+**状态：全部完成并推送。** 视觉签名三要素与全局换肤经 headless Chrome 计算样式验证全部生效。
+
+| 任务 | Commit | 验证 |
+|---|---|---|
+| Task 1 设计 token 与全局换肤 | `83cc959` | lint/format/build 绿；状态带渲染（dot/conn/stamp + 时间戳） |
+| Task 2 行情卡视觉 + Sparkline | `41c4663` | lint/format/build 绿；微染/竖条/等宽数字生效 |
+| Task 3 持仓表格与新闻视觉 | `4905e98` | lint/format/build 绿（仅 theme.css） |
+| Task 4 设置面板动效收尾 | `3f4efaf` | lint/format/build 绿 + 合规 OK（仅 theme.css） |
+| Task 5 验收/执行记录/推送 | 本记录 | 全量 `make check/lint/typecheck/test/build` 绿 + 视觉 CDP 验证 |
+
+### 视觉验收证据（headless Chrome + CDP 计算样式，模型不支持图片故用计算样式替代截图）
+
+| 签名要素 | 断言 | 实测值 |
+|---|---|---|
+| 涨卡微染 | `background-image` 含 `linear-gradient(rgba(229,72,77,0.1),…)` | ✅ |
+| 涨卡竖条 | `border-left-color` = `rgb(229,72,77)`（红 #E5484D） | ✅ |
+| 跌卡竖条 | `border-left-color` = `rgb(46,158,107)`（绿 #2E9E6B） | ✅ |
+| 大号等宽数字 | `.price` font `IBM Plex Mono` / 26px / `tabular-nums` | ✅ |
+| 涨跌幅等宽 | `.change` font IBM Plex Mono / 13px / tabular-nums | ✅ |
+| 代码等宽 | `.code` font IBM Plex Mono / 11px / muted | ✅ |
+| 墨蓝黑底 | `body` bg = `rgb(11,15,20)`（#0B0F14） | ✅ |
+| 面板色 | `.price-card` bg = `rgb(19,26,35)`（#131A23） | ✅ |
+| 状态带呼吸 | `.dot.on` `animation-name: pulse` | ✅ |
+| 状态带时间戳 | stamp `IBM Plex Mono`，实时时间渲染（17:37:06） | ✅ |
+| 琥珀金选中 | `.tabs button.active` color = `rgb(212,169,72)`（#D4A948） | ✅ |
+| 4 页面切换 | 持仓/新闻/设置/看板 h2 全部渲染 | ✅ |
+
+### 已知偏差/事实（As-Built）
+
+1. **ECharts canvas 不支持 CSS var**：Sparkline 用 `getComputedStyle(document.documentElement).getPropertyValue('--up'/'--down')` 读取颜色（canvas 无法读 CSS 变量），带 `#e5484d` 兜底。
+2. **Dashboard `connected` selector 以原文件为准**：计划假设 `s.wsStatus === 'connected'`，实际是 `useApp((s) => s.connected)`，按原文件保留。
+3. **Dashboard 状态带新增时间戳**：60s 轮询（`useEffect` + `clearInterval`），数据源为静态文案"源: 新浪·腾讯"（项目固定双源）。
+4. **涨跌微染驱动方式**：PriceCard 的 `up` 布尔 → `price-card up/down` 类名 → CSS 渐变微染 + 左侧 border 竖条。竖条可用伪元素，但微染底色需类名，故允许这一处 TSX 类名改动。
+5. **字体**：`@fontsource/ibm-plex-mono` latin 子集 400/500/600 经 `main.tsx` 引入，离线可用。
+6. **Task 4 `.muted` 不重复定义**：计划替换块末尾含 `.muted` 规则，按指令截断在 `.qr-code` 结束，保留原有 `.muted`（无重复定义）。
+7. **prettier 折行**：计划 CSS 代码块中个别选择器超 printWidth 100，worker 用 `npx prettier --write` 折行（语义不变）。
+8. **构建提示**：chunk >500kB（约 1.19MB bundle）为 MVP 既有遗留，未在本任务处理（如需可后续做代码分割/ECharts 按需引入）。
+9. **视觉验证方式**：当前模型不支持图片，故用 headless Chrome（`--proxy-server='direct://'` 绕过系统 SOCKS + `--remote-allow-origins=*`）+ CDP 计算样式断言替代截图；`browser-use` 本地 CDP 因系统 Chrome 使用 SOCKS 代理而握手失败（`python-socks` 已装但 daemon 仍报错），未使用。
+
+### 遗留事项
+- 无功能性遗留。可选后续：ECharts 按需引入/代码分割以消除 chunk 体积警告。
