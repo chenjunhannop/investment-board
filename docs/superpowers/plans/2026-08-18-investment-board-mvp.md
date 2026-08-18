@@ -2538,3 +2538,23 @@ git push -u origin main
 ## 收尾与后续扩展点
 
 MVP 完成后：`make check && make test && make build` 全绿即交付。后续扩展（不在本计划内）：完整当日分时（store 接入 `fetch_intraday`）、K 线、资产历史曲线、价格提醒、多市场、二维码渲染优化、WebSocket 断线事件总线清理。
+
+---
+
+## 执行记录（As-Built）
+
+> 全部 15 个任务于 2026-08-18 完成。最终验证：`make check`（合规扫描通过）/ `make test`（29 passed）/ `make build`（成功）。
+> 实现与计划的主要偏差记录如下（均为满足计划测试意图的最小修正或增强，未改变设计目标）。
+
+| Task | Commit | 偏差 / 增强 |
+|---|---|---|
+| 2 | c37ef86 | 测试 `read_text()` 改 `read_bytes()`（密文是二进制，原测试会抛 UnicodeDecodeError） |
+| 3 | 9fc372f | ① `parse_sina` 代码提取改 `text.split("hq_str_")[1].split("=")[0][2:]`（原 `[:6]` 会截到市场前缀）② 腾讯 fixture 展开为完整 ~40 字段格式 ③ 分时 fixture 改逗号分隔 ④ mock 补充 sz000001 行 |
+| 4 | 13587fe | 补充第 4 个测试 `test_fetch_individual_maps_related_code`（覆盖 Interfaces 声明的 `fetch_individual`，计划只写了 3 个却标 4 passed） |
+| 6 | d20fd80 | 去掉 `_quotes_loop` 的 `if codes:` 守卫（空启动时 fetcher 永不被调导致测试失败；`MarketService` 对空代码早退，生产安全） |
+| 7 | 377a704 | ① ws 改"每连接自推送"，避免 N 连接时广播 O(N²) 任务 ② `EventBus` 增 `unsubscribe` 且 `subscribe` 返回回调，连接关闭时清理订阅防泄漏 ③ routes 对 `ths=None` 返回 503 |
+| 9 | 06f8b7b | 补写 `index.html`（计划未给内容）；`.gitignore` 加 `*.tsbuildinfo` |
+| 14 | 8aeb45b / 39a360f | ① Makefile/CI 用 `python3`（本机无 `python` 别名）② **合规扫描重写为 AST 方案**：原正则 `\bbuy\b` 漏掉 `buy_stock` 等组合标识符，AST 检查标识符前缀，天然豁免注释/字符串；已验证 buy_stock/place_order/中文"买入"均被拦截 |
+| 15 | 118d8fc | 未创建可选 `scripts/dev_demo.py`（需新增后端注入端点，牵动测试，保持最小变更面）；README 快速开始 URL 用 `localhost:5173`（Vite 默认绑定 IPv6 localhost） |
+
+**已知外部依赖问题**：财联社电报公开接口当前返回 404（第三方接口变动），新闻源被优雅捕获返回空列表、应用不崩溃；已如实写入 README FAQ，待实测修正 `CLS_TELEGRAPH_URL` 或接口字段。
