@@ -8,25 +8,33 @@ export default function Settings() {
   const [qr, setQr] = useState<string>('');
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string>('');
+  const [statusText, setStatusText] = useState<string>('');
   const timer = useRef<number>();
 
   const beginLogin = useCallback(async () => {
     setError('');
+    setQr('');
     try {
       const r = await startLogin();
-      if (!r.qrcode_data) {
-        setError(r.error || '同花顺接口暂时不可用，请稍后再试');
+      if (!r.qrcode_img || r.error) {
+        setError(r.error || '获取二维码失败，请稍后再试');
         return;
       }
-      setQr(r.qrcode_data);
+      setQr(`data:image/png;base64,${r.qrcode_img}`);
       setScanning(true);
+      setStatusText('请在手机同花顺 App 扫描二维码');
       timer.current = window.setInterval(async () => {
-        const res = await pollLogin();
+        const res = await pollLogin(r.qrid);
         if (res.ok) {
           window.clearInterval(timer.current);
           setScanning(false);
           setQr('');
           await refresh();
+        } else if (res.reason === 'expired') {
+          window.clearInterval(timer.current);
+          beginLogin(); // 二维码失效自动刷新
+        } else if (res.reason === 'confirmed') {
+          setStatusText('已扫码，请在手机上确认登录');
         }
       }, 2000);
     } catch {
@@ -69,13 +77,20 @@ export default function Settings() {
             {qr && (
               <div className="qr-box">
                 <p className="muted">请在手机同花顺 App 扫描下方二维码：</p>
-                <pre className="qr-code">{qr}</pre>
-                <p className="muted">
-                  （MVP：二维码以文本形式展示，可全选复制；图形渲染为收尾扩展点）
-                </p>
+                <img
+                  src={qr}
+                  alt="同花顺登录二维码"
+                  style={{
+                    display: 'block',
+                    width: 220,
+                    height: 220,
+                    borderRadius: 8,
+                    marginTop: 8,
+                  }}
+                />
               </div>
             )}
-            {scanning && <p className="muted">等待扫码确认…</p>}
+            {scanning && <p className="muted">{statusText}</p>}
           </>
         )}
       </section>

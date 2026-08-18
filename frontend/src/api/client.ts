@@ -6,10 +6,19 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+export interface LoginQrcode {
+  qrid: string;
+  qrcode_img: string;
+  error?: string;
+}
+export interface LoginPoll {
+  ok: boolean;
+  reason?: 'expired' | 'waiting' | 'confirmed';
+}
 export const getStatus = () => json<Status>('/api/status');
-export const startLogin = () =>
-  json<{ qrcode_data: string; error?: string }>('/api/login/qrcode', { method: 'POST' });
-export const pollLogin = () => json<{ ok: boolean }>('/api/login/poll', { method: 'POST' });
+export const startLogin = () => json<LoginQrcode>('/api/login/qrcode', { method: 'POST' });
+export const pollLogin = (qrid: string) =>
+  json<LoginPoll>('/api/login/poll', { method: 'POST', body: JSON.stringify({ qrid }) });
 export const logout = () => json<{ ok: boolean }>('/api/logout', { method: 'POST' });
 export const getQuotes = () => json<Record<string, Quote>>('/api/quotes');
 export const getPositions = () => json<Position[]>('/api/positions');
