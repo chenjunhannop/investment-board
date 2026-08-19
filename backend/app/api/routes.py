@@ -72,42 +72,109 @@ async def mark_read(request: Request, news_id: str):
 
 @router.get("/watchlist")
 async def get_watchlist():
-    """返回本地自选列表.
+    """返回本地自选列表（文件夹分组结构）.
 
     Returns:
-        自选列表 [{code, name}, ...].
+        {"version": 2, "groups": [{"name", "stocks"}]}.
     """
     return watchlist.load_watchlist(settings.data_dir)
 
 
-@router.post("/watchlist")
-async def add_watchlist_item(body: dict):
-    """添加股票到自选列表.
+@router.post("/watchlist/groups")
+async def add_group(body: dict):
+    """新建自选文件夹.
 
     Args:
-        body: 请求体，{"code": str}；name 可省略（显示层用行情补齐）.
+        body: {"name": str}.
 
     Returns:
-        更新后的自选列表.
+        更新后的分组结构.
 
     Raises:
-        HTTPException: 400 当代码格式非法.
+        HTTPException: 400 当名称为空或重名.
     """
-    code = (body or {}).get("code", "")
     try:
-        return watchlist.add_watchlist(settings.data_dir, code)
+        return watchlist.add_group(settings.data_dir, (body or {}).get("name", ""))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.delete("/watchlist/{code}")
-async def remove_watchlist_item(code: str):
-    """从自选列表删除股票.
+@router.put("/watchlist/groups/{name}")
+async def rename_group(name: str, body: dict):
+    """重命名自选文件夹.
 
     Args:
+        name: 当前文件夹名.
+        body: {"new_name": str}.
+
+    Returns:
+        更新后的分组结构.
+
+    Raises:
+        HTTPException: 400 当文件夹不存在或新名非法.
+    """
+    try:
+        return watchlist.rename_group(settings.data_dir, name,
+                                      (body or {}).get("new_name", ""))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.delete("/watchlist/groups/{name}")
+async def remove_group(name: str):
+    """删除自选文件夹（连带其股票）.
+
+    Args:
+        name: 文件夹名.
+
+    Returns:
+        更新后的分组结构.
+
+    Raises:
+        HTTPException: 400 当文件夹不存在.
+    """
+    try:
+        return watchlist.remove_group(settings.data_dir, name)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post("/watchlist/stocks")
+async def add_stock(body: dict):
+    """向指定文件夹添加股票.
+
+    Args:
+        body: {"group": str, "code": str}.
+
+    Returns:
+        更新后的分组结构.
+
+    Raises:
+        HTTPException: 400 当代码非法或文件夹不存在.
+    """
+    body = body or {}
+    try:
+        return watchlist.add_stock(settings.data_dir, body.get("group", ""),
+                                   body.get("code", ""))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.delete("/watchlist/stocks/{group}/{code}")
+async def remove_stock(group: str, code: str):
+    """从指定文件夹删除股票.
+
+    Args:
+        group: 文件夹名.
         code: 6 位股票代码.
 
     Returns:
-        更新后的自选列表.
+        更新后的分组结构.
+
+    Raises:
+        HTTPException: 400 当文件夹或股票不存在.
     """
-    return watchlist.remove_watchlist(settings.data_dir, code)
+    try:
+        return watchlist.remove_stock(settings.data_dir, group, code)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e

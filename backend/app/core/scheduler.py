@@ -70,8 +70,7 @@ class Scheduler:
         from app.core import watchlist
 
         codes = set(self.quotes.keys())
-        for item in watchlist.load_watchlist(settings.data_dir):
-            codes.add(item["code"])
+        codes.update(watchlist.collect_codes(settings.data_dir))
         return sorted(codes)
 
     async def _quotes_loop(self):
