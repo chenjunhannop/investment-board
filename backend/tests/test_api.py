@@ -60,13 +60,11 @@ async def test_watchlist_group_api(tmp_path, monkeypatch):
         assert r.status_code == 200
         assert [g["name"] for g in r.json()["groups"]] == ["B"]
         # 添加股票
-        r = await c.post("/api/watchlist/stocks",
-                         json={"group": "B", "code": "600519"})
+        r = await c.post("/api/watchlist/stocks", json={"group": "B", "code": "600519"})
         assert r.status_code == 200
         assert [s["code"] for s in r.json()["groups"][0]["stocks"]] == ["600519"]
         # 非法代码 → 400
-        r = await c.post("/api/watchlist/stocks",
-                         json={"group": "B", "code": "abc"})
+        r = await c.post("/api/watchlist/stocks", json={"group": "B", "code": "abc"})
         assert r.status_code == 400
         # GET 返回分组结构
         r = await c.get("/api/watchlist")

@@ -49,7 +49,10 @@ def test_scheduler_collect_codes_includes_watchlist(tmp_path, monkeypatch):
         "version": 2,
         "groups": [{
             "name": "A",
-            "stocks": [{"code": "000001", "name": ""}]
+            "stocks": [{
+                "code": "000001",
+                "name": ""
+            }]
         }]
     }),
                                              encoding="utf-8")

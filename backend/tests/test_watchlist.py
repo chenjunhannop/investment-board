@@ -33,7 +33,8 @@ def test_stock_crud(tmp_path: Path):
     stocks = watchlist.load_watchlist(tmp_path)["groups"][0]["stocks"]
     assert [s["code"] for s in stocks] == ["600519", "000858"]
     watchlist.remove_stock(tmp_path, "白酒", "600519")
-    assert [s["code"] for s in watchlist.load_watchlist(tmp_path)["groups"][0]["stocks"]] == ["000858"]
+    assert [s["code"] for s in watchlist.load_watchlist(tmp_path)["groups"][0]["stocks"]
+           ] == ["000858"]
 
 
 def test_stock_validation(tmp_path: Path):
@@ -50,8 +51,7 @@ def test_stock_validation(tmp_path: Path):
 
 def test_v1_migration(tmp_path: Path):
     """v1 扁平数组自动迁移到未分组文件夹."""
-    (tmp_path / "watchlist.json").write_text(
-        '[{"code": "600519", "name": ""}]', encoding="utf-8")
+    (tmp_path / "watchlist.json").write_text('[{"code": "600519", "name": ""}]', encoding="utf-8")
     data = watchlist.load_watchlist(tmp_path)
     assert data["version"] == 2
     assert data["groups"][0]["name"] == "未分组"

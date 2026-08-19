@@ -114,8 +114,7 @@ async def rename_group(name: str, body: dict):
         HTTPException: 400 当文件夹不存在或新名非法.
     """
     try:
-        return watchlist.rename_group(settings.data_dir, name,
-                                      (body or {}).get("new_name", ""))
+        return watchlist.rename_group(settings.data_dir, name, (body or {}).get("new_name", ""))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -154,8 +153,7 @@ async def add_stock(body: dict):
     """
     body = body or {}
     try:
-        return watchlist.add_stock(settings.data_dir, body.get("group", ""),
-                                   body.get("code", ""))
+        return watchlist.add_stock(settings.data_dir, body.get("group", ""), body.get("code", ""))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
