@@ -707,3 +707,52 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+## As-Built 执行记录（Task 4 收尾）
+
+> 执行日期：2026-08-19 · 分支：main · 范围：Task 1-3 实现 + Task 4 全量验收/视觉冒烟/推送
+
+### Task 1-3 Commit
+
+| Task | Commit | Message | 状态 |
+|------|--------|---------|------|
+| 1 | `47f957a` | feat: 大屏面板容器与数字跳动 hook | ✅ |
+| 2 | `a597ac0` | style: 大屏视觉体系（渐变背景/发光边框/角标/超大数字/动效） | ✅ |
+| 3 | `e2f21f4` | style: 看板大屏对称三分区布局（大标题/动效/轮播） | ✅ |
+
+### Task 4 验证结果
+
+| 检查 | 命令 | 结果 |
+|------|------|------|
+| 合规静态检查 | `make check` | ✅ OK（未发现交易语义代码） |
+| 双端 lint + 格式 | `make lint` | ✅ ruff / yapf / eslint / prettier 全绿 |
+| 双端类型检查 | `make typecheck` | ✅ mypy / tsc 通过 |
+| 后端测试 | `make test` | ✅ 30 passed（后端零改动） |
+| 前端构建 | `make build` | ✅ Vite 构建成功（chunk>500kB 提示，非阻塞） |
+| 视觉冒烟 | headless Chrome + CDP | ✅ 20/20 断言通过，截图 `/tmp/bs_final.png`（1920×937） |
+
+### 视觉冒烟断言明细（20/20）
+
+- **a** `.bigscreen` 背景含 `linear-gradient`（深色渐变）与 `radial-gradient`（顶部光晕）✅
+- **b** `.bs-header h1` = “市场数据中心”；`.bs-header-time`（秒级时钟）与 `.bs-header-conn`（连接状态）存在 ✅
+- **c** `.bs-panel` = 6 个（≥5）；`.bs-corner.tl/tr/bl/br` 各 6 个（共 24 角标）✅
+- **d** `.index-price` 计算样式 `font-size: 40px` + font-family 含 IBM Plex Mono + `font-variant-numeric: tabular-nums`，渲染数值（如 3912.17）✅
+- **e** `.temp-up`（宽度 89.47px）与 `.temp-nums`（↑664 ↓976）渲染；`.marquee-inner` `animation-name: marquee`（30s linear infinite），轮播卡 105 条 ✅
+
+> 注：冒烟时后端外部数据源存在热身期抖动（首帧快照可能 indices 空或 market 0/0），脚本预热后端缓存并轮询等待 `.index-card` 出现（最长 35s）后断言；实测单次 run 即 20/20 通过。
+
+### 偏差清单（与计划对照）
+
+| # | 计划 | 实际实现 | 说明 |
+|---|------|----------|------|
+| 1 | 独立 `status-bar` 条 | 连接状态移入 `bs-header-conn`（左上，连接正常 `--up` 红/断开 `--down` 绿 + pulse），秒级时间移入 `bs-header-time`（右上，1s interval） | 状态条并入大标题区，大屏顶部更简洁 |
+| 2 | 角标（未限定实现方式） | `BigScreenPanel` 用 4 个 `<span className="bs-corner tl/tr/bl/br">`（非伪元素） | 单元素伪元素仅能覆盖 2 个角，4 span 直白可控；与 Task 1 代码一致 |
+| 3 | 大屏背景铺满 | `.bigscreen { margin: -16px; padding: 16px 20px }` 抵消 `.app` 的 `padding: 16px` | 深色渐变背景铺满视口（全屏大屏感） |
+| 4 | 动效尊重 reduced-motion | CSS：全局 `@media (prefers-reduced-motion: reduce)` 收敛动画/过渡并禁用 `.marquee-inner`；JS：`useCountUp` 用 `matchMedia('(prefers-reduced-motion: reduce)')` 命中时直跳目标值 | 双端都处理 |
+| 5 | status-bar 保留与否的取舍 | **保留** `.status-bar` 原始 CSS（90-114 行）及大屏块内 `.status-bar .dot.on` 脉冲规则，未删除 | 该 class 已无任何 TSX 使用（纯保留死代码）；CSS 无副作用，删除风险 > 收益，故按保留处理 |
+
+### 遗留事项
+
+- 后端 `DashboardService.get_snapshot()` 中 `fetch_indices` 与 `fetch_sector_board` 独立抓取外部数据源，数据源热身/抖动期可能出现部分空快照（indices 空或 market 0/0），前端指数卡/市场温度会延迟到下一次 30s 刷新才完整。非本次前端重做引入，属外部数据源预期行为（后端已优雅降级，不崩溃）。
