@@ -176,3 +176,22 @@ async def remove_stock(group: str, code: str):
         return watchlist.remove_stock(settings.data_dir, group, code)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.get("/dashboard")
+async def get_dashboard(request: Request):
+    """返回看板大屏聚合快照.
+
+    Args:
+        request: FastAPI 请求，携带挂载了 dashboard 的 app.state.
+
+    Returns:
+        大屏快照（指数/板块/资金/K线）.
+    """
+    svc = getattr(request.app.state, "dashboard", None)
+    if svc is None:
+        return {"indices": [], "market": {"up": 0, "down": 0},
+                "sectors": {"top_gainers": [], "top_losers": [],
+                            "fund_flow": []},
+                "kline": {"top3_gainers": [], "top3_losers": []}}
+    return await svc.get_snapshot()

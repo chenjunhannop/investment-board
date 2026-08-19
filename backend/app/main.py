@@ -11,6 +11,7 @@ from app.api.ws import ws_router
 from app.config import settings
 from app.core.events import EventBus
 from app.core.scheduler import Scheduler
+from app.market.dashboard import DashboardService
 from app.market.service import MarketService
 from app.news.service import NewsService
 
@@ -28,6 +29,8 @@ async def lifespan(app: FastAPI):
     market = MarketService(client)
     news = NewsService(client)
     bus = EventBus()
+    dashboard = DashboardService(client)
+    app.state.dashboard = dashboard
 
     async def news_fetcher(codes):
         """抓取个股公告与全局快讯.
