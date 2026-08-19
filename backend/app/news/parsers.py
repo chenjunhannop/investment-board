@@ -29,16 +29,21 @@ def parse_eastmoney(text: str) -> list[NewsItem]:
     data = json.loads(text)
     out: list[NewsItem] = []
     for item in data.get("data", {}).get("list", []):
-        code = item.get("column_code", "").replace("sz", "").replace("sh", "")
+        try:
+            published_at = _ts(item.get("notice_date", ""))
+        except ValueError:
+            continue  # 时间缺失/非法时跳过该条，不中断整体
+        codes = [c.get("stock_code", "") for c in item.get("codes", [])]
+        codes = [c for c in codes if c]
         out.append(
             NewsItem(
                 id=item.get("art_code", ""),
                 source="eastmoney",
-                title=item.get("notice_title", ""),
-                url=item.get("art_url", ""),
-                published_at=_ts(item.get("notice_date", "")),
+                title=item.get("title", ""),
+                url=item.get("art_url", "") or "",
+                published_at=published_at,
                 news_type="individual",
-                related_codes=[code] if code else [],
+                related_codes=codes,
             ))
     return out
 

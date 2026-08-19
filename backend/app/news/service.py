@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 EM_NOTICE_URL = ("https://np-anotice-stock.eastmoney.com/api/security/ann"
                  "?sr=-1&page_size=20&page_index=1&ann_type=A&client_source=web&"
-                 "stock_list={code}")
+                 "stock_list={codes}")
 CLS_TELEGRAPH_URL = "https://www.cls.cn/nodeapi/telegraphList?app=CailianpressWeb"
 
 
@@ -28,28 +28,25 @@ class NewsService:
         self._timeout = timeout
 
     async def fetch_individual(self, codes: list[str]) -> list[NewsItem]:
-        """按代码列表抓取个股公告.
+        """按代码列表抓取个股公告（东财支持逗号分隔批量）.
 
         Args:
             codes: 6 位股票代码列表.
 
         Returns:
-            公告 NewsItem 列表；单只股票失败会被跳过，不中断整体.
+            公告 NewsItem 列表；请求失败时返回空列表，不中断整体.
         """
-        out: list[NewsItem] = []
-        for code in codes:
-            try:
-                r = await self._client.get(EM_NOTICE_URL.format(code=code),
-                                           timeout=self._timeout,
-                                           headers={"User-Agent": "Mozilla/5.0"})
-                r.raise_for_status()
-                for item in parse_eastmoney(r.text):
-                    if code not in item.related_codes:
-                        item.related_codes = [code]
-                    out.append(item)
-            except Exception as e:
-                logger.warning("个股公告获取失败 %s: %s", code, e)
-        return out
+        if not codes:
+            return []
+        try:
+            r = await self._client.get(EM_NOTICE_URL.format(codes=",".join(codes)),
+                                       timeout=self._timeout,
+                                       headers={"User-Agent": "Mozilla/5.0"})
+            r.raise_for_status()
+            return parse_eastmoney(r.text)
+        except Exception as e:
+            logger.warning("个股公告批量获取失败: %s", e)
+            return []
 
     async def fetch_global(self) -> list[NewsItem]:
         """抓取财联社全局快讯.

@@ -12,9 +12,9 @@ from app.news.service import NewsService
 EM_FIXTURE = """{
   "data": {
     "list": [
-      {"art_code": "A001", "notice_title": "贵州茅台2026年半年度报告",
+      {"art_code": "A001", "title": "贵州茅台2026年半年度报告",
        "notice_date": "2026-08-18 09:00:00",
-       "column_code": "sz000001",
+       "codes": [{"stock_code": "000001"}],
        "art_url": "http://static.cninfo.com.cn/xxx.pdf"}
     ]
   }
@@ -59,13 +59,14 @@ def test_dedupe_keeps_new():
 
 @pytest.mark.asyncio
 async def test_fetch_individual_maps_related_code(respx_mock: MockRouter):
-    """按代码拉取个股公告并映射关联代码."""
+    """按代码拉取个股公告并映射关联代码（批量请求）."""
     from app.news.service import EM_NOTICE_URL
-    respx_mock.get(
-        EM_NOTICE_URL.format(code="000001")).mock(return_value=httpx.Response(200, text=EM_FIXTURE))
+    respx_mock.get(EM_NOTICE_URL.format(codes="000001")).mock(
+        return_value=httpx.Response(200, text=EM_FIXTURE))
     svc = NewsService(httpx.AsyncClient())
     items = await svc.fetch_individual(["000001"])
     assert len(items) == 1
     assert items[0].news_type == "individual"
     assert items[0].source == "eastmoney"
+    assert items[0].title == "贵州茅台2026年半年度报告"
     assert "000001" in items[0].related_codes
