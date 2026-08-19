@@ -311,3 +311,28 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+## 执行记录（As-Built）
+
+**状态：全部完成并推送。**
+
+| 任务 | Commit | 验证 |
+|---|---|---|
+| Task 1 后端静态托管 | `094d644` | API/index/静态资源冒烟通过 |
+| Task 2 Docker | `14e325e` | compose build/up/down 实测通过 |
+| Task 3 截图 | `7fc698c` | dashboard.png + watchlist.png |
+| Task 4 README | `da717cd` | 阿里规范检查（中英文空格等全通过） |
+| Task 5 修复 + 验收 | `07cbc0e` | 全量验收全绿 |
+
+### 偏差清单
+1. **dist_dir 默认路径**：初版 `Path("frontend/dist")` 相对 CWD，从 backend 目录运行时指向 `backend/frontend/dist`（不存在）→ 修正为基于 `__file__` 解析到项目根 `frontend/dist`（绝对路径，与启动 CWD 无关）。
+2. **eslint unused PriceCard**：底部持仓改 holdings-card 后 PriceCard import 残留 → 移除。
+3. **IndexMiniChart exhaustive-deps**：`[JSON.stringify(points), color]` 触发 eslint 警告 → 改用 `useRef` 比较内容 key + deps `[points, color]`（满足 hooks 规则，仍防闪）。
+4. **sector.py no-any-return**：`json.loads` 返回 Any → `# type: ignore[no-any-return]`。
+5. **截图脚本**：cdp 需 `params` dict（`Page.captureScreenshot` 的 format 在 params 里）；截图目录曾误建在 frontend/docs，已修正到 `docs/screenshots/`。
+6. **Docker build 首次失败**：BuildKit 拉 base 镜像瞬时 IPv6 超时，`docker pull` 后重试成功（网络瞬时，非代码）。
+7. **静态托管**：`mount("/")` + `html=True`（前端单页无路由跳转，无需额外 SPA fallback）；`/api`、`/ws` 路由先注册优先匹配。
+8. **Docker 端口**：`127.0.0.1:8210:8210` 仅本地访问（隐私保持）；容器内 `IB_HOST=0.0.0.0`。
+9. **财联社 404**：全局快讯接口 404 为既有第三方变动（优雅降级，与本次无关）。
