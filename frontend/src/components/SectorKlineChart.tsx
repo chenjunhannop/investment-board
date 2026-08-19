@@ -10,7 +10,7 @@ interface Props {
 export default function SectorKlineChart({ name, klines, up }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!ref.current) return;
+    if (!ref.current || klines.length === 0) return;
     const chart = echarts.init(ref.current);
     const dates = klines.map((k) => k[0] as string);
     const values = klines.map((k) => [Number(k[1]), Number(k[2]), Number(k[3]), Number(k[4])]);
@@ -40,5 +40,9 @@ export default function SectorKlineChart({ name, klines, up }: Props) {
     });
     return () => chart.dispose();
   }, [klines, up, name]);
+  if (klines.length === 0) {
+    // 东财 K线接口不稳定时优雅降级：显示占位而非空白
+    return <div className="kline-empty">暂无K线数据</div>;
+  }
   return <div ref={ref} style={{ width: '100%', height: '100%' }} />;
 }

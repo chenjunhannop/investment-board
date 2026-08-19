@@ -32,6 +32,11 @@ body {
   margin: 0 auto;
   padding: 16px;
 }
+/* 看板大屏：全宽铺满，突破 max-width 限制 */
+.app:has(.bigscreen) {
+  max-width: none;
+  padding: 0;
+}
 
 .topbar {
   display: flex;
@@ -495,8 +500,9 @@ body {
     radial-gradient(ellipse at 50% -10%, rgba(212, 169, 72, 0.1), transparent 60%),
     linear-gradient(180deg, #0a1128 0%, #0d1520 60%, #0b1220 100%);
   min-height: 100vh;
-  margin: -16px;
-  padding: 16px 20px;
+  margin: 0;
+  padding: 16px 24px;
+  max-width: none;
 }
 /* 网格纹理叠加 */
 .bigscreen::before {
@@ -859,4 +865,17 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* K线数据缺失占位 */
+.kline-empty {
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+  background: rgba(10, 15, 22, 0.5);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
 }
