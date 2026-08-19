@@ -11,7 +11,8 @@ class Settings:
     host: str = "127.0.0.1"
     port: int = 8210
     data_dir: Path = Path.home() / ".investment-board"
-    dist_dir: Path = Path("frontend/dist")  # 前端构建产物目录
+    # 前端构建产物目录：基于本文件位置解析到项目根 frontend/dist（与启动 CWD 无关）
+    dist_dir: Path = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
     quotes_interval: float = 3.0
     news_interval: float = 60.0
 

@@ -51,7 +51,7 @@ def _curl_json(url: str, request_timeout: float, retries: int = 4) -> dict:
                                    text=True,
                                    timeout=request_timeout + 3)
                 if r.returncode == 0 and r.stdout.strip():
-                    return json.loads(r.stdout)
+                    return json.loads(r.stdout)  # type: ignore[no-any-return]
                 last = RuntimeError(f"curl {host} exit {r.returncode}")
             except Exception as e:
                 last = e

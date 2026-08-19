@@ -8,13 +8,20 @@ interface Props {
 
 export default function IndexMiniChart({ points, color }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  // init 只做一次；数据按内容变化时才 setOption 更新，避免高频重渲染导致闪烁
+  const prevKey = useRef('');
+  // init 只做一次，避免重复创建实例
   useEffect(() => {
     if (!ref.current) return;
     const chart = echarts.init(ref.current);
     return () => chart.dispose();
   }, []);
   useEffect(() => {
+    // 内容（序列化 key）未变则跳过，避免高频重渲染导致闪烁
+    const key = JSON.stringify(points);
+    if (prevKey.current === key) {
+      return;
+    }
+    prevKey.current = key;
     const el = ref.current;
     if (!el) return;
     const chart = echarts.getInstanceByDom(el);
@@ -33,6 +40,6 @@ export default function IndexMiniChart({ points, color }: Props) {
         },
       ],
     });
-  }, [JSON.stringify(points), color]);
+  }, [points, color]);
   return <div ref={ref} style={{ width: '100%', height: 40 }} />;
 }

@@ -3,7 +3,6 @@ import { getDashboard } from '../api/client';
 import type { DashboardData } from '../api/client';
 import BigScreenPanel from '../components/BigScreenPanel';
 import FundFlowChart from '../components/FundFlowChart';
-import PriceCard from '../components/PriceCard';
 import SectorKlineChart from '../components/SectorKlineChart';
 import { useCountUp } from '../hooks/useCountUp';
 import { useApp } from '../store';
