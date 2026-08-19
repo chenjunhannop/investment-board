@@ -64,9 +64,7 @@ SINA_INDEX_URL = "https://hq.sinajs.cn/list=sh000001,sz399001,sz399006"
 SINA_INDEX_KLINE_URL = ("https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20x="
                         "/CN_MarketDataService.getKLineData?symbol={sym}"
                         "&scale=240&ma=no&datalen=30")
-SINA_STOCK_KLINE_URL = ("https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20x="
-                        "/CN_MarketDataService.getKLineData?symbol={sym}"
-                        "&scale=240&ma=no&datalen=30")
+TENCENT_KLINE_URL = "https://web.ifzq.gtimg.cn/appstock/app/kline/kline?param={sym},day,,,30"
 SECTOR_LIST_URL = ("https://push2.eastmoney.com/api/qt/clist/get"
                    "?pn=1&pz=500&po=1&np=1&fltt=2&invt=2&fid=f3"
                    "&fs=m:90+t:2&fields=f2,f3,f12,f14,f62,f104,f105,f128,f140")
@@ -140,6 +138,42 @@ def _clean_name(name: str) -> str:
         if name.endswith(suffix):
             return name[:-len(suffix)]
     return name
+
+
+def parse_tencent_kline(text: str, sym: str) -> list[list]:
+    """解析腾讯 K线 JSON 为 klines 列表.
+
+    输入: {"data": {"sh600519": {"day": [["date",open,close,high,low,volume,...],...]}}}
+
+    Args:
+        text: 腾讯 K线响应文本.
+        sym: 行情代码（如 sh600519）.
+
+    Returns:
+        [[day, open, close, high, low, volume, 0], ...]（末位补 amount 兼容）.
+    """
+    try:
+        data = json.loads(text)
+        day = data.get("data", {}).get(sym, {}).get("day", [])
+    except (json.JSONDecodeError, AttributeError):
+        return []
+    rows: list[list] = []
+    for it in day:
+        if len(it) < 6:
+            continue
+        try:
+            rows.append([
+                it[0],
+                float(it[1]),
+                float(it[2]),
+                float(it[3]),
+                float(it[4]),
+                float(it[5]),
+                0.0,
+            ])
+        except (TypeError, ValueError):
+            continue
+    return rows
 
 
 def parse_sina_index_kline(text: str) -> list[list]:
@@ -339,14 +373,14 @@ async def fetch_indices(client: httpx.AsyncClient) -> list[dict]:
                                  timeout=8)
             r.raise_for_status()
             out = parse_sina_indices(r.content.decode("gbk", "ignore"))
-            # 为每个指数拉日K（新浪 K线稳定，指数卡展示真实 K线）
+            # 为每个指数拉日K（腾讯 K线稳定）
             for idx in out:
                 try:
-                    kr = await client.get(SINA_INDEX_KLINE_URL.format(sym=idx["code"]),
-                                          headers={"Referer": "https://finance.sina.com.cn/"},
+                    kr = await client.get(TENCENT_KLINE_URL.format(sym=idx["code"]),
+                                          headers={"Referer": "https://gu.qq.com/"},
                                           timeout=8)
                     kr.raise_for_status()
-                    idx["kline"] = parse_sina_index_kline(kr.text)
+                    idx["kline"] = parse_tencent_kline(kr.text, idx["code"])
                 except Exception as e:
                     logger.warning("抓取指数 %s K线失败: %s", idx["code"], e)
                     idx["kline"] = []
@@ -402,7 +436,7 @@ async def fetch_sector_kline(client: httpx.AsyncClient, secid: str) -> list[list
 
 
 async def fetch_stock_kline(client: httpx.AsyncClient, code: str) -> list[list]:
-    """抓取单只个股近 30 日K线（新浪数据源，稳定）.
+    """抓取单只个股近 30 日K线（腾讯数据源，稳定）.
 
     用于板块走势降级：板块指数K线数据源（东财）不稳定时，展示板块领涨股走势.
 
@@ -415,11 +449,11 @@ async def fetch_stock_kline(client: httpx.AsyncClient, code: str) -> list[list]:
     """
     symbol = ("sh" if code.startswith(("6", "9")) else "sz") + code
     try:
-        r = await client.get(SINA_STOCK_KLINE_URL.format(sym=symbol),
-                             headers={"Referer": "https://finance.sina.com.cn/"},
+        r = await client.get(TENCENT_KLINE_URL.format(sym=symbol),
+                             headers={"Referer": "https://gu.qq.com/"},
                              timeout=8)
         r.raise_for_status()
-        return parse_sina_index_kline(r.text)
+        return parse_tencent_kline(r.text, symbol)
     except Exception as e:
         logger.warning("抓取个股 %s K线失败: %s", code, e)
         return []
