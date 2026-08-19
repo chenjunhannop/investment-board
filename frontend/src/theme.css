@@ -676,29 +676,50 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 顶部指标带 + 对称三分区 + 底部 */
+/* 顶部指标带 + 对称三分区 + 底部（严格等高） */
 .bs-indices {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 12px;
 }
+.bs-indices > * {
+  display: flex;
+  flex-direction: column;
+}
 .bs-main {
-  display: grid;
-  grid-template-columns: 1.1fr 2fr 1.1fr;
+  display: flex;
   gap: 12px;
   margin-bottom: 12px;
+  align-items: stretch;
 }
 .bs-left,
 .bs-right {
+  flex: 1.1;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.bs-main > .bs-kline-panel {
+  flex: 2;
+}
+.bs-left .bs-panel,
+.bs-right .bs-panel {
+  flex: 1;
+}
+.bs-main .bs-panel {
+  display: flex;
+  flex-direction: column;
+}
+.bs-main .bs-panel .bs-panel-body {
+  flex: 1;
+  min-height: 0;
 }
 .kline-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+  flex: 1;
 }
 .kline-card {
   background: rgba(10, 15, 22, 0.7);
@@ -715,20 +736,39 @@ body {
 .sector-rank {
   font-size: 12px;
 }
+.sector-rank td {
+  padding: 6px 6px;
+}
+.rank-num {
+  color: var(--muted);
+  font-family: var(--font-data);
+  font-size: 11px;
+}
+.rank-pct {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.rank-leader {
+  text-align: right;
+  font-size: 11px;
+}
 .bs-bottom {
   display: grid;
   grid-template-columns: 3fr 2fr;
   gap: 12px;
 }
-.self-strip .grid {
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+.holdings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 .news-feed {
   max-height: 320px;
   overflow-y: auto;
 }
 .news-line {
-  padding: 6px 0;
+  padding: 8px 0;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   line-height: 1.5;
@@ -751,24 +791,6 @@ body {
   }
 }
 
-/* 底部自选/新闻滚动（marquee） */
-.marquee {
-  overflow: hidden;
-  white-space: nowrap;
-}
-.marquee-inner {
-  display: inline-block;
-  animation: marquee 30s linear infinite;
-}
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
 /* 响应式 + reduced-motion */
 @media (max-width: 1100px) {
   .bs-indices {
@@ -783,6 +805,9 @@ body {
   .kline-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .holdings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -791,8 +816,5 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-  .marquee-inner {
-    animation: none;
   }
 }

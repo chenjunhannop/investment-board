@@ -10,16 +10,22 @@ import { useCountUp } from '../hooks/useCountUp';
 import { useApp } from '../store';
 
 const DASHBOARD_REFRESH_MS = 30000;
+const NEWS_PAGE_MS = 8000;
+const NEWS_PAGE_SIZE = 4;
 
 function IndexCard({ index }: { index: DashboardData['indices'][number] }) {
   const price = useCountUp(index.price);
   const up = index.change_pct >= 0;
   const color = up ? 'var(--up)' : 'var(--down)';
+  const priceText = price.toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
   return (
     <div className="index-card">
       <div className="index-name">{index.name}</div>
       <div className="index-price" style={{ color }}>
-        {price.toFixed(2)}
+        {priceText}
       </div>
       <div className="index-change" style={{ color }}>
         {up ? '+' : ''}
@@ -33,16 +39,48 @@ function IndexCard({ index }: { index: DashboardData['indices'][number] }) {
   );
 }
 
+function SectorRankTable({
+  rows,
+  up,
+}: {
+  rows: DashboardData['sectors']['top_gainers'];
+  up: boolean;
+}) {
+  const color = up ? 'var(--up)' : 'var(--down)';
+  const sign = up ? '+' : '';
+  return (
+    <table className="tbl sector-rank">
+      <tbody>
+        {rows.map((s, i) => (
+          <tr key={s.secid}>
+            <td className="rank-num">{(i + 1).toString().padStart(2, '0')}</td>
+            <td>{s.name}</td>
+            <td className="rank-pct" style={{ color }}>
+              {sign}
+              {s.change_pct.toFixed(2)}%
+            </td>
+            <td className="muted rank-leader">{s.leader}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 export default function Dashboard() {
   const quotes = useApp((s) => s.quotes);
   const news = useApp((s) => s.news);
+  const watchlist = useApp((s) => s.watchlist);
   const connected = useApp((s) => s.connected);
   const [dash, setDash] = useState<DashboardData | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [newsPage, setNewsPage] = useState(0);
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
   useEffect(() => {
     let alive = true;
     const load = async () => {
@@ -60,6 +98,21 @@ export default function Dashboard() {
       clearInterval(t);
     };
   }, []);
+
+  // 持仓过滤：底部自选行情只看"持仓"文件夹
+  const holdingsGroup = watchlist.groups.find((g) => g.name === '持仓');
+  const holdingCodes = new Set((holdingsGroup?.stocks ?? []).map((s) => s.code));
+  const holdings = Object.values(quotes).filter((q) => holdingCodes.has(q.code));
+
+  // 新闻翻页轮播（8s/页，4 条/页）
+  const newsList = news.slice(0, 12);
+  const newsPages = Math.max(1, Math.ceil(newsList.length / NEWS_PAGE_SIZE));
+  useEffect(() => {
+    const t = setInterval(() => setNewsPage((p) => (p + 1) % newsPages), NEWS_PAGE_MS);
+    return () => clearInterval(t);
+  }, [newsPages]);
+  const pageNews = newsList.slice(newsPage * NEWS_PAGE_SIZE, (newsPage + 1) * NEWS_PAGE_SIZE);
+
   const stamp = now.toLocaleString('zh-CN', { hour12: false });
   const upCount = useCountUp(dash?.market.up ?? 0);
   const downCount = useCountUp(dash?.market.down ?? 0);
@@ -74,13 +127,13 @@ export default function Dashboard() {
         <h1>市场数据中心</h1>
         <span className="bs-header-time">{stamp}</span>
       </div>
-      {/* A + G：指数带 + 市场温度 */}
+      {/* KPI 带：指数 + 市场温度（严格等高） */}
       <div className="bs-indices">
         {dash?.indices.map((ix) => (
           <IndexCard key={ix.code} index={ix} />
         ))}
         <div className="market-temp">
-          <div className="temp-title">市场温度</div>
+          <div className="temp-title">市场温度 · 涨跌家数</div>
           <div className="temp-bar">
             <div className="temp-up" style={{ width: `${(upCount / total) * 100}%` }} />
           </div>
@@ -90,37 +143,17 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      {/* 对称三分区：左排行 / 中K线主视觉 / 右资金 */}
+      {/* 中部主区：左排行 / 中K线主视觉 / 右资金（等高） */}
       <div className="bs-main">
         <div className="bs-left">
           <BigScreenPanel title="板块涨幅榜">
-            <table className="tbl sector-rank">
-              <tbody>
-                {dash?.sectors.top_gainers.map((s) => (
-                  <tr key={s.secid}>
-                    <td>{s.name}</td>
-                    <td style={{ color: 'var(--up)' }}>+{s.change_pct.toFixed(2)}%</td>
-                    <td className="muted">{s.leader}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SectorRankTable rows={dash?.sectors.top_gainers ?? []} up />
           </BigScreenPanel>
           <BigScreenPanel title="板块跌幅榜">
-            <table className="tbl sector-rank">
-              <tbody>
-                {dash?.sectors.top_losers.map((s) => (
-                  <tr key={s.secid}>
-                    <td>{s.name}</td>
-                    <td style={{ color: 'var(--down)' }}>{s.change_pct.toFixed(2)}%</td>
-                    <td className="muted">{s.leader}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SectorRankTable rows={dash?.sectors.top_losers ?? []} up={false} />
           </BigScreenPanel>
         </div>
-        <BigScreenPanel title="重点板块走势（涨幅前三 / 跌幅前三）">
+        <BigScreenPanel title="重点板块走势（涨幅前三 / 跌幅前三）" className="bs-kline-panel">
           <div className="kline-grid">
             {dash?.kline.top3_gainers.map((k) => (
               <div key={k.secid} className="kline-card">
@@ -141,31 +174,26 @@ export default function Dashboard() {
           </div>
         </BigScreenPanel>
         <div className="bs-right">
-          <BigScreenPanel title="板块资金流向（主力净流入 TOP）">
+          <BigScreenPanel title="板块资金流向（主力净流入 · 亿元）">
             <FundFlowChart data={dash?.sectors.fund_flow ?? []} />
           </BigScreenPanel>
         </div>
       </div>
-      {/* 底部：E 自选滚动 + F 新闻 */}
+      {/* 底部：持仓行情（静态）+ 新闻（翻页轮播） */}
       <div className="bs-bottom">
-        <BigScreenPanel title="自选实时行情" className="self-strip">
-          <div className="marquee">
-            <div className="marquee-inner">
-              {Object.values(quotes).map((q) => (
-                <div
-                  key={q.code}
-                  className="cell"
-                  style={{ display: 'inline-block', marginRight: 10 }}
-                >
-                  <PriceCard q={q} />
-                </div>
-              ))}
-            </div>
+        <BigScreenPanel title="我的持仓" className="self-strip">
+          <div className="holdings-grid">
+            {holdings.map((q) => (
+              <div key={q.code} className="cell">
+                <PriceCard q={q} />
+              </div>
+            ))}
           </div>
+          {holdings.length === 0 && <div className="muted">暂无持仓行情</div>}
         </BigScreenPanel>
-        <BigScreenPanel title="新闻快讯">
+        <BigScreenPanel title={`新闻快讯（${newsPage + 1}/${newsPages}）`}>
           <div className="news-feed">
-            {news.slice(0, 12).map((n) => (
+            {pageNews.map((n) => (
               <div key={n.id} className="news-line">
                 <span className="muted">{n.source}</span> {n.title}
               </div>
