@@ -934,3 +934,15 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+### As-Built（执行记录）
+
+| 任务 | Commit | 验证结果 | 偏差 / 备注 |
+|---|---|---|---|
+| Task 1 后端 watchlist.py 重构为分组结构 | `8089bfd8d59739331e6cd837dcb818c722e754bd`（feat: 自选列表升级为文件夹分组结构（v2 迁移）） | `test_watchlist.py` 8 用例绿；ruff / mypy 通过 | 预期红 2 个：重写后旧 `test_api.py`（扁平 watchlist 用例）与 `test_core.py`（旧 flat 文件 collect_codes 用例）失败，属计划内过渡，Task 2 同步修复 |
+| Task 2 分组 REST API + scheduler 遍历 | `e6b9d2884c16aad79a1f35d3d4d44d457ce33b39`（feat: 自选文件夹分组 REST API 并接入行情/新闻采集） | 全量 pytest 26 通过（23→26）；ruff / mypy / check_no_trade 通过 | 新增 `test_watchlist_group_api` 使测试 23→26；`routes.py` 等文件在 Task 5 收尾时经 yapf 重排通过 lint（yapf 格式偏差） |
+| Task 3 前端文件夹 UI | `d5ce8945537c1db9037c4b23f3583078af9d5ad3`（feat: 自选页文件夹分类 UI（新建/重命名/删除/折叠）） | eslint / prettier / tsc / build 全绿；check_no_trade 通过 | Watchlist.tsx 新增 2 处 `// eslint-disable-next-line no-alert`（重命名/删除确认用 `window.prompt` / `window.confirm` 的简化实现） |
+| Task 4 数据预置 16 组 111 股 | `7c24c91de057f3e250eb8bb6c91958b4098b7ca9`（chore: 自选数据预置脚本（持仓 + 15 领域龙头）） | 16 文件夹、持仓 6 + 15×7 = 111 只全部通过新浪接口验证 | 保险组 `000627`（西水）/`600291`（*ST西水）无效被替换为 `002423`（中粮资本）/`000987`（越秀资本）；`600745` *ST闻泰 保留（接口验证有效）；seed 脚本经 ruff auto-fix 移除计划中的 `# noqa: E402` 注释；持仓 6 只在对应领域文件夹重复出现（唯一代码 105 只） |
+| Task 5 全量验收 / 冒烟 / As-Built / 推送 | 本次 docs 提交（见 Git 日志：`docs: 自选文件夹分类计划追加执行记录（as-built）`），前置 `fe1112f` chore: yapf 重排后端文件 | 全量验收全绿：check / lint（含 yapf 重排修复 4 个后端文件）/ typecheck / test 26 passed / build 成功；冒烟：16 组 watchlist、105 唯一代码行情（贵州茅台在列、股票名全补齐）、分组 CRUD + 去重 + 400 校验通过、headless 浏览器确认自选页 16 文件夹 + 111 行情卡 + 折叠交互；README 功能说明补充文件夹分类与预置数据 | Task 5 修复 Task 2 遗留的 yapf 格式问题（`routes.py`、`test_api.py`、`test_core.py`、`test_watchlist.py` 重排）；v1 扁平列表自动迁移到「未分组」文件夹（原有 v1 迁移行为保留，本次无真实 v1 数据迁移发生） |
