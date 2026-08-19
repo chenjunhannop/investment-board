@@ -1,13 +1,37 @@
 import { useEffect, useState } from 'react';
 import { getDashboard } from '../api/client';
 import type { DashboardData } from '../api/client';
+import BigScreenPanel from '../components/BigScreenPanel';
 import FundFlowChart from '../components/FundFlowChart';
 import IndexMiniChart from '../components/IndexMiniChart';
 import PriceCard from '../components/PriceCard';
 import SectorKlineChart from '../components/SectorKlineChart';
+import { useCountUp } from '../hooks/useCountUp';
 import { useApp } from '../store';
 
 const DASHBOARD_REFRESH_MS = 30000;
+
+function IndexCard({ index }: { index: DashboardData['indices'][number] }) {
+  const price = useCountUp(index.price);
+  const up = index.change_pct >= 0;
+  const color = up ? 'var(--up)' : 'var(--down)';
+  return (
+    <div className="index-card">
+      <div className="index-name">{index.name}</div>
+      <div className="index-price" style={{ color }}>
+        {price.toFixed(2)}
+      </div>
+      <div className="index-change" style={{ color }}>
+        {up ? '+' : ''}
+        {index.change_pct.toFixed(2)}%
+      </div>
+      <IndexMiniChart
+        points={[index.prev_close, index.open, index.price]}
+        color={up ? '#e5484d' : '#2e9e6b'}
+      />
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const quotes = useApp((s) => s.quotes);
@@ -16,7 +40,7 @@ export default function Dashboard() {
   const [dash, setDash] = useState<DashboardData | null>(null);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60000);
+    const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
   useEffect(() => {
@@ -36,41 +60,24 @@ export default function Dashboard() {
       clearInterval(t);
     };
   }, []);
-  const stamp = now.toLocaleTimeString('zh-CN', { hour12: false });
-  const upCount = dash?.market.up ?? 0;
-  const downCount = dash?.market.down ?? 0;
+  const stamp = now.toLocaleString('zh-CN', { hour12: false });
+  const upCount = useCountUp(dash?.market.up ?? 0);
+  const downCount = useCountUp(dash?.market.down ?? 0);
   const total = upCount + downCount || 1;
-  const trend = (p: number[]) => (p.length >= 2 ? p : [0, 0]);
   return (
     <div className="page bigscreen">
-      <div className="status-bar">
-        <span className={`dot ${connected ? 'on' : ''}`} />
-        <span className="conn">{connected ? '实时连接中' : '连接断开，重连中…'}</span>
-        <span className="stamp">{stamp}</span>
+      {/* 顶部大标题区 */}
+      <div className="bs-header">
+        <span className={`bs-header-conn ${connected ? 'on' : ''}`}>
+          ● {connected ? '实时连接' : '连接断开'}
+        </span>
+        <h1>市场数据中心</h1>
+        <span className="bs-header-time">{stamp}</span>
       </div>
-      {/* A. 指数区 + G. 温度条 */}
-      <div className="bigscreen-top">
+      {/* A + G：指数带 + 市场温度 */}
+      <div className="bs-indices">
         {dash?.indices.map((ix) => (
-          <div key={ix.code} className="index-card">
-            <div className="index-name">{ix.name}</div>
-            <div
-              className="index-price"
-              style={{ color: ix.change_pct >= 0 ? 'var(--up)' : 'var(--down)' }}
-            >
-              {ix.price.toFixed(2)}
-            </div>
-            <div
-              className="index-change"
-              style={{ color: ix.change_pct >= 0 ? 'var(--up)' : 'var(--down)' }}
-            >
-              {ix.change_pct >= 0 ? '+' : ''}
-              {ix.change_pct.toFixed(2)}%
-            </div>
-            <IndexMiniChart
-              points={trend([ix.prev_close, ix.open, ix.price])}
-              color={ix.change_pct >= 0 ? '#e5484d' : '#2e9e6b'}
-            />
-          </div>
+          <IndexCard key={ix.code} index={ix} />
         ))}
         <div className="market-temp">
           <div className="temp-title">市场温度</div>
@@ -78,15 +85,42 @@ export default function Dashboard() {
             <div className="temp-up" style={{ width: `${(upCount / total) * 100}%` }} />
           </div>
           <div className="temp-nums">
-            <span style={{ color: 'var(--up)' }}>↑ {upCount}</span>
-            <span style={{ color: 'var(--down)' }}>↓ {downCount}</span>
+            <span style={{ color: 'var(--up)' }}>↑ {Math.round(upCount)}</span>
+            <span style={{ color: 'var(--down)' }}>↓ {Math.round(downCount)}</span>
           </div>
         </div>
       </div>
-      {/* 中部：D 走势图（主区） + 侧边 B/C */}
-      <div className="bigscreen-mid">
-        <div className="kline-area">
-          <h3>重点板块走势（涨幅前三 / 跌幅前三）</h3>
+      {/* 对称三分区：左排行 / 中K线主视觉 / 右资金 */}
+      <div className="bs-main">
+        <div className="bs-left">
+          <BigScreenPanel title="板块涨幅榜">
+            <table className="tbl sector-rank">
+              <tbody>
+                {dash?.sectors.top_gainers.map((s) => (
+                  <tr key={s.secid}>
+                    <td>{s.name}</td>
+                    <td style={{ color: 'var(--up)' }}>+{s.change_pct.toFixed(2)}%</td>
+                    <td className="muted">{s.leader}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </BigScreenPanel>
+          <BigScreenPanel title="板块跌幅榜">
+            <table className="tbl sector-rank">
+              <tbody>
+                {dash?.sectors.top_losers.map((s) => (
+                  <tr key={s.secid}>
+                    <td>{s.name}</td>
+                    <td style={{ color: 'var(--down)' }}>{s.change_pct.toFixed(2)}%</td>
+                    <td className="muted">{s.leader}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </BigScreenPanel>
+        </div>
+        <BigScreenPanel title="重点板块走势（涨幅前三 / 跌幅前三）">
           <div className="kline-grid">
             {dash?.kline.top3_gainers.map((k) => (
               <div key={k.secid} className="kline-card">
@@ -105,58 +139,31 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        </div>
-        <div className="side-area">
-          <div className="panel">
-            <h3>板块涨跌排行</h3>
-            <table className="tbl sector-rank">
-              <thead>
-                <tr>
-                  <th>板块</th>
-                  <th>涨跌幅</th>
-                  <th>领涨</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dash?.sectors.top_gainers.map((s) => (
-                  <tr key={s.secid}>
-                    <td>{s.name}</td>
-                    <td style={{ color: 'var(--up)' }}>+{s.change_pct.toFixed(2)}%</td>
-                    <td className="muted">{s.leader}</td>
-                  </tr>
-                ))}
-                {dash?.sectors.top_losers.map((s) => (
-                  <tr key={s.secid}>
-                    <td>{s.name}</td>
-                    <td style={{ color: 'var(--down)' }}>{s.change_pct.toFixed(2)}%</td>
-                    <td className="muted">{s.leader}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="panel">
-            <h3>板块资金流向（主力净流入 TOP）</h3>
+        </BigScreenPanel>
+        <div className="bs-right">
+          <BigScreenPanel title="板块资金流向（主力净流入 TOP）">
             <FundFlowChart data={dash?.sectors.fund_flow ?? []} />
-          </div>
+          </BigScreenPanel>
         </div>
       </div>
-      {/* 底部：E 自选 + F 新闻 */}
-      <div className="bigscreen-bottom">
-        <div className="panel self-strip">
-          <h3>自选实时行情</h3>
-          <div className="grid">
-            {Object.values(quotes)
-              .slice(0, 12)
-              .map((q) => (
-                <div key={q.code} className="cell">
+      {/* 底部：E 自选滚动 + F 新闻 */}
+      <div className="bs-bottom">
+        <BigScreenPanel title="自选实时行情" className="self-strip">
+          <div className="marquee">
+            <div className="marquee-inner">
+              {Object.values(quotes).map((q) => (
+                <div
+                  key={q.code}
+                  className="cell"
+                  style={{ display: 'inline-block', marginRight: 10 }}
+                >
                   <PriceCard q={q} />
                 </div>
               ))}
+            </div>
           </div>
-        </div>
-        <div className="panel news-strip">
-          <h3>新闻快讯</h3>
+        </BigScreenPanel>
+        <BigScreenPanel title="新闻快讯">
           <div className="news-feed">
             {news.slice(0, 12).map((n) => (
               <div key={n.id} className="news-line">
@@ -164,7 +171,7 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </BigScreenPanel>
       </div>
     </div>
   );
