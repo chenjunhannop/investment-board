@@ -19,6 +19,38 @@ KLINE_URL = ("https://push2his.eastmoney.com/api/qt/stock/kline/get"
 MIN_STOCKS = 10  # 冷门过滤：板块含股数下限
 
 
+async def _get_with_retry(client: httpx.AsyncClient,
+                          url: str,
+                          request_timeout: float,
+                          retries: int = 3) -> httpx.Response:
+    """带重试的 GET 请求，缓解东财对复用连接偶发断开的抖动.
+
+    Args:
+        client: 共享 httpx 客户端.
+        url: 请求地址.
+        request_timeout: 单次请求超时秒数.
+        retries: 重试次数（默认 3）.
+
+    Returns:
+        成功的 httpx.Response.
+
+    Raises:
+        httpx.HTTPError: 重试耗尽后仍失败时抛出最后一次异常.
+    """
+    import asyncio
+
+    last: Exception | None = None
+    for attempt in range(retries):
+        try:
+            return await client.get(url,
+                                    headers={"Referer": "https://quote.eastmoney.com/"},
+                                    timeout=request_timeout)
+        except Exception as e:  # 东财偶发 Server disconnected，新连接通常可成功
+            last = e
+            await asyncio.sleep(0.3 * (attempt + 1))
+    raise last if last else httpx.HTTPError("request failed")
+
+
 def _num(value, scale: float = 1.0, default: float = 0.0) -> float:
     """把东财 ×100 整数或数值转为浮点，缺失用默认值.
 
@@ -164,11 +196,10 @@ async def fetch_indices(client: httpx.AsyncClient) -> list[dict]:
     out = []
     for secid in INDEX_SECIDS:
         try:
-            r = await client.get(
-                f"https://push2.eastmoney.com/api/qt/stock/get?secid={secid}"
-                "&fields=f43,f44,f45,f46,f57,f58,f60,f169,f170",
-                headers={"Referer": "https://quote.eastmoney.com/"},
-                timeout=8)
+            r = await _get_with_retry(client,
+                                      f"https://push2.eastmoney.com/api/qt/stock/get?secid={secid}"
+                                      "&fields=f43,f44,f45,f46,f57,f58,f60,f169,f170",
+                                      request_timeout=8)
             r.raise_for_status()
             parsed = parse_indices(r.json())
             if parsed:
@@ -188,9 +219,7 @@ async def fetch_sector_board(client: httpx.AsyncClient) -> dict:
         parse_sector_board 结果；失败时返回空结构.
     """
     try:
-        r = await client.get(SECTOR_LIST_URL,
-                             headers={"Referer": "https://quote.eastmoney.com/"},
-                             timeout=10)
+        r = await _get_with_retry(client, SECTOR_LIST_URL, request_timeout=10)
         r.raise_for_status()
         return parse_sector_board(r.json())
     except Exception as e:
@@ -217,9 +246,7 @@ async def fetch_sector_kline(client: httpx.AsyncClient, secid: str) -> list[list
         日K列表；失败时返回空列表.
     """
     try:
-        r = await client.get(f"{KLINE_URL}&secid={secid}",
-                             headers={"Referer": "https://quote.eastmoney.com/"},
-                             timeout=8)
+        r = await _get_with_retry(client, f"{KLINE_URL}&secid={secid}", request_timeout=8)
         r.raise_for_status()
         return parse_sector_kline(r.json())
     except Exception as e:
