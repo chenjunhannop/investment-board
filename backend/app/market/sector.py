@@ -61,6 +61,9 @@ def _curl_json(url: str, request_timeout: float, retries: int = 4) -> dict:
 
 INDEX_SECIDS = ["1.000001", "0.399001", "0.399006"]  # 上证/深证/创业板（东财 secid，备用）
 SINA_INDEX_URL = "https://hq.sinajs.cn/list=sh000001,sz399001,sz399006"
+SINA_INDEX_KLINE_URL = ("https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20x="
+                        "/CN_MarketDataService.getKLineData?symbol={sym}"
+                        "&scale=240&ma=no&datalen=30")
 SECTOR_LIST_URL = ("https://push2.eastmoney.com/api/qt/clist/get"
                    "?pn=1&pz=500&po=1&np=1&fltt=2&invt=2&fid=f3"
                    "&fs=m:90+t:2&fields=f2,f3,f12,f14,f62,f104,f105,f128,f140")
@@ -134,6 +137,41 @@ def _clean_name(name: str) -> str:
         if name.endswith(suffix):
             return name[:-len(suffix)]
     return name
+
+
+def parse_sina_index_kline(text: str) -> list[list]:
+    """解析新浪指数 K线 JSONP 为 klines 列表.
+
+    输入: var x=([{"day":...,"open":...,"high":...,"low":...,"close":...,"volume":...},...]);
+
+    Args:
+        text: 新浪指数 K线响应原文.
+
+    Returns:
+        [[day, open, close, high, low, volume, 0], ...]（末位补 amount=0 兼容板块 K线格式）.
+    """
+    m = re.search(r'\(\[(.*)\]\);', text, re.S)
+    if not m:
+        return []
+    try:
+        data = json.loads("[" + m.group(1) + "]")
+    except json.JSONDecodeError:
+        return []
+    rows: list[list] = []
+    for it in data:
+        try:
+            rows.append([
+                it["day"],
+                float(it["open"]),
+                float(it["close"]),
+                float(it["high"]),
+                float(it["low"]),
+                float(it["volume"]),
+                0.0,
+            ])
+        except (KeyError, ValueError):
+            continue
+    return rows
 
 
 def parse_sina_indices(text: str) -> list[dict]:
@@ -282,13 +320,13 @@ def parse_sector_kline(data: dict) -> list[list]:
 
 
 async def fetch_indices(client: httpx.AsyncClient) -> list[dict]:
-    """抓取上证/深证/创业板指数快照（新浪数据源，较东财稳定）.
+    """抓取上证/深证/创业板指数快照与日K线（新浪数据源，稳定）.
 
     Args:
         client: 共享 httpx 客户端.
 
     Returns:
-        指数字典列表；失败时返回空列表.
+        指数字典列表（含 kline 字段）；失败时返回空列表.
     """
     last: Exception | None = None
     for _ in range(3):
@@ -297,7 +335,19 @@ async def fetch_indices(client: httpx.AsyncClient) -> list[dict]:
                                  headers={"Referer": "https://finance.sina.com.cn/"},
                                  timeout=8)
             r.raise_for_status()
-            return parse_sina_indices(r.content.decode("gbk", "ignore"))
+            out = parse_sina_indices(r.content.decode("gbk", "ignore"))
+            # 为每个指数拉日K（新浪 K线稳定，指数卡展示真实 K线）
+            for idx in out:
+                try:
+                    kr = await client.get(SINA_INDEX_KLINE_URL.format(sym=idx["code"]),
+                                          headers={"Referer": "https://finance.sina.com.cn/"},
+                                          timeout=8)
+                    kr.raise_for_status()
+                    idx["kline"] = parse_sina_index_kline(kr.text)
+                except Exception as e:
+                    logger.warning("抓取指数 %s K线失败: %s", idx["code"], e)
+                    idx["kline"] = []
+            return out
         except Exception as e:
             last = e
             await asyncio.sleep(0.3)

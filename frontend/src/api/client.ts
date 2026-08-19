@@ -46,6 +46,7 @@ export interface IndexSnapshot {
   low: number;
   open: number;
   prev_close: number;
+  kline: Array<Array<string | number>>;
 }
 export interface SectorRow {
   secid: string;

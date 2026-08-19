@@ -636,6 +636,15 @@ body {
   font-size: 13px;
   color: var(--muted);
 }
+.index-card .index-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.index-card .index-kline {
+  height: 80px; /* 真实 K线小图 */
+  margin-top: 6px;
+}
 .index-card .index-price {
   font-family: var(--font-data);
   font-size: 40px;
@@ -744,7 +753,7 @@ body {
   padding: 8px;
 }
 .kline-card .chart-wrap {
-  height: 300px; /* 大图 */
+  height: 220px; /* 大图 */
 }
 .kline-title {
   font-family: var(--font-data);
@@ -757,7 +766,7 @@ body {
   width: 100%;
 }
 .sector-rank td {
-  padding: 8px 6px;
+  padding: 12px 6px; /* 行高加大，填满面板消除下方空白 */
 }
 .rank-num {
   color: var(--muted);
@@ -820,6 +829,13 @@ body {
   border-bottom: 1px solid var(--border);
   font-size: 13px;
   line-height: 1.5;
+  color: var(--text);
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+}
+.news-line:hover {
+  color: var(--accent);
 }
 .news-line:last-child {
   border-bottom: none;
@@ -869,7 +885,7 @@ body {
 
 /* K线数据缺失占位 */
 .kline-empty {
-  height: 300px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -3,7 +3,6 @@ import { getDashboard } from '../api/client';
 import type { DashboardData } from '../api/client';
 import BigScreenPanel from '../components/BigScreenPanel';
 import FundFlowChart from '../components/FundFlowChart';
-import IndexMiniChart from '../components/IndexMiniChart';
 import PriceCard from '../components/PriceCard';
 import SectorKlineChart from '../components/SectorKlineChart';
 import { useCountUp } from '../hooks/useCountUp';
@@ -23,21 +22,23 @@ function IndexCard({ index }: { index: DashboardData['indices'][number] }) {
   });
   return (
     <div className="index-card">
-      <div className="index-name">{index.name}</div>
+      <div className="index-head">
+        <span className="index-name">{index.name}</span>
+        <span className="index-change" style={{ color }}>
+          {up ? '+' : ''}
+          {index.change_pct.toFixed(2)}%
+        </span>
+      </div>
       <div className="index-price" style={{ color }}>
         {priceText}
-      </div>
-      <div className="index-change" style={{ color }}>
-        {up ? '+' : ''}
-        {index.change_pct.toFixed(2)}%
       </div>
       <div className="index-ohlc">
         今开 {index.open.toFixed(2)} · 昨收 {index.prev_close.toFixed(2)}
       </div>
-      <IndexMiniChart
-        points={[index.prev_close, index.open, index.price]}
-        color={up ? '#e5484d' : '#2e9e6b'}
-      />
+      {/* 真实 K线（新浪日K） */}
+      <div className="index-kline">
+        <SectorKlineChart name={index.name} klines={index.kline ?? []} up={up} />
+      </div>
     </div>
   );
 }
@@ -228,9 +229,15 @@ export default function Dashboard() {
         <BigScreenPanel title={`新闻快讯（${newsPage + 1}/${newsPages}）`}>
           <div className="news-feed">
             {pageNews.map((n) => (
-              <div key={n.id} className="news-line">
+              <a
+                key={n.id}
+                href={n.url || undefined}
+                target="_blank"
+                rel="noreferrer"
+                className="news-line"
+              >
                 <span className="muted">{n.source}</span> {n.title}
-              </div>
+              </a>
             ))}
           </div>
         </BigScreenPanel>
