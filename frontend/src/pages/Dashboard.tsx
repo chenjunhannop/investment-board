@@ -86,19 +86,23 @@ export default function Dashboard() {
 
   useEffect(() => {
     let alive = true;
+    let timer = 0;
     const load = async () => {
       try {
         const d = await getDashboard();
-        if (alive) setDash(d);
+        if (!alive) return;
+        setDash(d);
+        // 数据完整则 30s 正常刷新；缺失（东财偶发）则 5s 快速重试
+        const complete = (d.indices?.length ?? 0) >= 3 && (d.sectors?.top_gainers?.length ?? 0) > 0;
+        timer = window.setTimeout(load, complete ? DASHBOARD_REFRESH_MS : 5000);
       } catch {
-        /* 保留上次快照 */
+        if (alive) timer = window.setTimeout(load, 5000);
       }
     };
     load();
-    const t = setInterval(load, DASHBOARD_REFRESH_MS);
     return () => {
       alive = false;
-      clearInterval(t);
+      window.clearTimeout(timer);
     };
   }, []);
 

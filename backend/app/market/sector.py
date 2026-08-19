@@ -1,15 +1,18 @@
-"""东财板块/指数数据服务（公开接口，含冷门过滤与异常兜底）.
+"""东财板块/新浪指数数据服务（公开接口，含冷门过滤与异常兜底）.
 
-数据来源为东方财富公开接口：大盘指数 stock/get、行业板块 clist/get、
-板块日K kline/get。所有接口为只读公开数据，不涉及任何交易操作.
+数据来源：新浪指数 hq.sinajs.cn、东方财富行业板块 clist/get 与板块日K kline/get。
+所有接口为只读公开数据，不涉及任何交易操作.
 """
+import asyncio
 import logging
+import re
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
-INDEX_SECIDS = ["1.000001", "0.399001", "0.399006"]  # 上证/深证/创业板
+INDEX_SECIDS = ["1.000001", "0.399001", "0.399006"]  # 上证/深证/创业板（东财 secid，备用）
+SINA_INDEX_URL = "https://hq.sinajs.cn/list=sh000001,sz399001,sz399006"
 SECTOR_LIST_URL = ("https://push2.eastmoney.com/api/qt/clist/get"
                    "?pn=1&pz=500&po=1&np=1&fltt=2&invt=2&fid=f3"
                    "&fs=m:90+t:2&fields=f2,f3,f12,f14,f62,f104,f105,f128,f140")
@@ -83,6 +86,52 @@ def _clean_name(name: str) -> str:
         if name.endswith(suffix):
             return name[:-len(suffix)]
     return name
+
+
+def parse_sina_indices(text: str) -> list[dict]:
+    """解析新浪指数响应（GBK，含高低开）.
+
+    格式: var hq_str_sh000001="名称,开盘,昨收,当前,最高,最低,买一,卖一,量,额,..."
+
+    Args:
+        text: 新浪指数响应原文（GBK 编码）.
+
+    Returns:
+        指数字典列表（code/name/price/high/low/open/prev_close/change/change_pct）.
+    """
+    lines = text.splitlines()
+    out: list[dict] = []
+    for line in lines:
+        m = re.search(r'hq_str_(\w+)="(.*)"', line)
+        if not m:
+            continue
+        code = m.group(1)
+        fields = m.group(2).split(",")
+        if len(fields) < 10:
+            continue
+        name = fields[0]
+        try:
+            open_p = float(fields[1])
+            prev_close = float(fields[2])
+            price = float(fields[3])
+            high = float(fields[4])
+            low = float(fields[5])
+        except ValueError:
+            continue
+        change = price - prev_close
+        change_pct = change / prev_close * 100.0 if prev_close else 0.0
+        out.append({
+            "code": code,
+            "name": name,
+            "price": price,
+            "high": high,
+            "low": low,
+            "open": open_p,
+            "prev_close": prev_close,
+            "change": change,
+            "change_pct": change_pct,
+        })
+    return out
 
 
 def parse_indices(data: dict) -> list[dict]:
@@ -185,28 +234,27 @@ def parse_sector_kline(data: dict) -> list[list]:
 
 
 async def fetch_indices(client: httpx.AsyncClient) -> list[dict]:
-    """抓取上证/深证/创业板指数快照.
+    """抓取上证/深证/创业板指数快照（新浪数据源，较东财稳定）.
 
     Args:
         client: 共享 httpx 客户端.
 
     Returns:
-        指数字典列表；任一失败时跳过该指数.
+        指数字典列表；失败时返回空列表.
     """
-    out = []
-    for secid in INDEX_SECIDS:
+    last: Exception | None = None
+    for _ in range(3):
         try:
-            r = await _get_with_retry(client,
-                                      f"https://push2.eastmoney.com/api/qt/stock/get?secid={secid}"
-                                      "&fields=f43,f44,f45,f46,f57,f58,f60,f169,f170",
-                                      request_timeout=8)
+            r = await client.get(SINA_INDEX_URL,
+                                 headers={"Referer": "https://finance.sina.com.cn/"},
+                                 timeout=8)
             r.raise_for_status()
-            parsed = parse_indices(r.json())
-            if parsed:
-                out.append(parsed[0])
+            return parse_sina_indices(r.content.decode("gbk", "ignore"))
         except Exception as e:
-            logger.warning("抓取指数 %s 失败: %s", secid, e)
-    return out
+            last = e
+            await asyncio.sleep(0.3)
+    logger.warning("抓取指数失败: %s", last)
+    return []
 
 
 async def fetch_sector_board(client: httpx.AsyncClient) -> dict:

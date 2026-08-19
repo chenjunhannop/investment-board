@@ -1,5 +1,26 @@
-"""东财板块/指数解析器的单元测试."""
-from app.market.sector import parse_indices, parse_sector_board, parse_sector_kline
+"""东财板块/新浪指数解析器的单元测试."""
+from app.market.sector import (
+    parse_indices,
+    parse_sector_board,
+    parse_sector_kline,
+    parse_sina_indices,
+)
+
+SINA = ('var hq_str_sh000001="上证指数,3952.12,3990.30,3893.49,3966.00,3880.00,0,0,'
+        '2607014,56719724,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";')
+
+
+def test_parse_sina_indices():
+    """新浪指数（GBK 已转码）解析为带高低开的指数快照."""
+    r = parse_sina_indices(SINA)
+    assert len(r) == 1
+    assert r[0]["name"] == "上证指数"
+    assert r[0]["price"] == 3893.49
+    assert r[0]["open"] == 3952.12
+    assert r[0]["prev_close"] == 3990.30
+    assert abs(r[0]["change"] - (3893.49 - 3990.30)) < 0.001
+    assert r[0]["change_pct"] < 0
+
 
 INDEX = {
     "data": {
