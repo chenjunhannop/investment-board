@@ -19,7 +19,7 @@ KLINE_URL = ("https://push2his.eastmoney.com/api/qt/stock/kline/get"
 MIN_STOCKS = 10  # 冷门过滤：板块含股数下限
 
 
-def _num(value, scale=1.0, default=0.0) -> float:
+def _num(value, scale: float = 1.0, default: float = 0.0) -> float:
     """把东财 ×100 整数或数值转为浮点，缺失用默认值.
 
     Args:
@@ -49,7 +49,7 @@ def _clean_name(name: str) -> str:
     """
     for suffix in ("Ⅲ", "Ⅱ"):
         if name.endswith(suffix):
-            return name[: -len(suffix)]
+            return name[:-len(suffix)]
     return name
 
 
@@ -119,7 +119,10 @@ def parse_sector_board(data: dict) -> dict:
         "top_gainers": top_gainers,
         "top_losers": top_losers,
         "fund_flow": fund_flow,
-        "market": {"up": market_up, "down": market_down},
+        "market": {
+            "up": market_up,
+            "down": market_down
+        },
     }
 
 
@@ -139,8 +142,12 @@ def parse_sector_kline(data: dict) -> list[list]:
         if len(parts) >= 7:
             rows.append([
                 parts[0],
-                float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4]),
-                float(parts[5]), float(parts[6]),
+                float(parts[1]),
+                float(parts[2]),
+                float(parts[3]),
+                float(parts[4]),
+                float(parts[5]),
+                float(parts[6]),
             ])
     return rows
 
@@ -160,7 +167,8 @@ async def fetch_indices(client: httpx.AsyncClient) -> list[dict]:
             r = await client.get(
                 f"https://push2.eastmoney.com/api/qt/stock/get?secid={secid}"
                 "&fields=f43,f44,f45,f46,f57,f58,f60,f169,f170",
-                headers={"Referer": "https://quote.eastmoney.com/"}, timeout=8)
+                headers={"Referer": "https://quote.eastmoney.com/"},
+                timeout=8)
             r.raise_for_status()
             parsed = parse_indices(r.json())
             if parsed:
@@ -187,8 +195,15 @@ async def fetch_sector_board(client: httpx.AsyncClient) -> dict:
         return parse_sector_board(r.json())
     except Exception as e:
         logger.warning("抓取板块排行失败: %s", e)
-        return {"top_gainers": [], "top_losers": [], "fund_flow": [],
-                "market": {"up": 0, "down": 0}}
+        return {
+            "top_gainers": [],
+            "top_losers": [],
+            "fund_flow": [],
+            "market": {
+                "up": 0,
+                "down": 0
+            }
+        }
 
 
 async def fetch_sector_kline(client: httpx.AsyncClient, secid: str) -> list[list]:

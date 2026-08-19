@@ -946,3 +946,51 @@ git status --short && git log --oneline origin/main..HEAD
 ```
 
 Expected: 工作区干净、无未推送 commit。
+
+---
+
+## As-Built 执行记录（Task 5 收尾，2026-08-19）
+
+### Task 1-4 提交与验证
+
+| Task | Commit | 说明 | 验证 |
+|------|--------|------|------|
+| 1 后端东财板块服务 | `0381808` | `feat: 东财板块/指数/日K数据服务（含冷门过滤）` | test_sector 3 用例绿 |
+| 2 DashboardService + API | `9100a60` | `feat: 看板大屏聚合快照 API（30s TTL 缓存）` | test_dashboard 1 用例绿 |
+| 3 前端图表组件 + client | `c87bd2b` | `feat: 大屏 ECharts 图表组件（板块K线/资金流/指数迷你线）` | eslint/tsc/build 绿 |
+| 4 Dashboard 大屏重构 | `5d8ba85` | `feat: 看板页多维大屏布局（指数/排行/资金/K线/自选/新闻）` | lint/build 绿 |
+
+### Task 5 全量验收（commit 前本地通过）
+
+`make check && make lint && make typecheck && make test && make build` 全绿：
+- `make check`：合规静态检查 OK（无交易语义）
+- `make lint`：ruff / yapf / eslint / prettier 零错
+- `make typecheck`：mypy 19 文件 + tsc 通过
+- `make test`：**30 passed**（≥26）
+- `make build`：Vite 构建成功（仅 1.19MB chunk 体积警告，非错误）
+
+### 冒烟结果（本机 2026-08-19）
+
+- `GET /api/dashboard` 直接 curl：`indices` 3（上证 3924.55 / 深证 14132.86 / 创业板 3549.0）、`market {up:620, down:1019}`、`sectors`（top_gainers 5 / top_losers 5 / fund_flow 10）、`kline`（top3_gainers / top3_losers 各 3，每板块 60 行日K）✓
+- 前端 headless Chrome（1600×1000，`http://[::1]:5173`）：7 模块全部渲染——指数卡（上游可用时 2-3 张）、市场温度条（↑/↓ 家数 + 温度比例条）、板块涨跌排行表（10 行含领涨股）、资金流向条形图（canvas）、6 块 K线图（canvas）、自选横排（12 格实时行情）、新闻流（12 条）✓；30s 轮询由 `DASHBOARD_REFRESH_MS=30000` 驱动
+- **东财接口偶发**：浏览器 3 次抓取中 2 次命中上游 `Server disconnected`（`fetch_indices` 返回 0-2 张指数卡）；后端按设计降级（空字段 + 保留缓存，绝不 500），直接 curl 仍可拿到完整 3 指数。属上游公开接口偶发，非代码缺陷。
+
+### 偏差清单
+
+| # | 计划原文 | 实际实现 | 说明 |
+|---|---------|---------|------|
+| 1 | Task1 `import logging` / `import httpx` 相邻无空行 | stdlib 与第三方 import 分组（ruff `I` 规则） | 计划代码未满足 ruff import 排序，落地时按 `make lint` 修正 |
+| 2 | Task2 `request.app.state.dashboard` 直接访问 | `getattr(request.app.state, "dashboard", None)` | 避免服务未装配时 AttributeError，更稳的兜底写法 |
+| 3 | Task3 `klines: (string \| number)[][]` | `klines: Array<Array<string \| number>>` | `@typescript-eslint/array-type` 规则要求泛型写法，按 lint 落地 |
+| 4 | 冷门过滤阈值 | 沿用计划 `MIN_STOCKS = 10`（`f104 + f105 >= 10` 才纳入） | 排除氨纶 1 股等超冷门板块 |
+| 5 | 父子层级去重 | `_clean_name` 去除 `Ⅱ/Ⅲ` 后缀后去重，保留首个 | 避免「银行 / 银行Ⅱ」重复占位（冒烟中「城商行Ⅲ」等细分板块仍以原名保留） |
+| 6 | 东财 ×100 换算 | `_num(..., scale=100.0)` 对指数报价 /100 转浮点 | 东财报价为 ×100 整数，前端显示两位小数正确 |
+| 7 | 涨幅/跌幅前三 | 按 `change_pct` 排序取前 3 | 冒烟中前三含「房地产服务 / 物业管理」等细分板块，属预期 |
+| 8 | **Task5 收尾新增**：Task 1-4 提交时未过 yapf 格式与 mypy | `make format` 重排后端 4 文件；`_num` 参数补类型注解 `scale: float / default: float` 消除 mypy `no-any-return` | 收尾全量验收发现，已修正并随本记录提交 |
+
+### 收尾提交与推送
+
+```bash
+git commit -m "docs: 看板大屏化计划追加执行记录（as-built）"   # 含 README + yapf/mypy 修正
+git push origin main
+```

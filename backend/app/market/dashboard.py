@@ -44,8 +44,7 @@ class DashboardService:
                     "secid": item["secid"],
                     "name": item["name"],
                     "change_pct": item["change_pct"],
-                    "klines": await sector.fetch_sector_kline(self._client,
-                                                              item["secid"]),
+                    "klines": await sector.fetch_sector_kline(self._client, item["secid"]),
                 })
             top3_losers = []
             for item in board["top_losers"][:3]:
@@ -53,8 +52,7 @@ class DashboardService:
                     "secid": item["secid"],
                     "name": item["name"],
                     "change_pct": item["change_pct"],
-                    "klines": await sector.fetch_sector_kline(self._client,
-                                                              item["secid"]),
+                    "klines": await sector.fetch_sector_kline(self._client, item["secid"]),
                 })
             snapshot = {
                 "indices": indices,
@@ -64,8 +62,10 @@ class DashboardService:
                     "top_losers": board["top_losers"],
                     "fund_flow": board["fund_flow"],
                 },
-                "kline": {"top3_gainers": top3_gainers,
-                          "top3_losers": top3_losers},
+                "kline": {
+                    "top3_gainers": top3_gainers,
+                    "top3_losers": top3_losers
+                },
             }
             self._snapshot = snapshot
             self._fetched_at = now
@@ -75,7 +75,19 @@ class DashboardService:
             logger.warning("刷新大屏快照失败: %s", e)
             if self._snapshot:
                 return self._snapshot
-            return {"indices": [], "market": {"up": 0, "down": 0},
-                    "sectors": {"top_gainers": [], "top_losers": [],
-                                "fund_flow": []},
-                    "kline": {"top3_gainers": [], "top3_losers": []}}
+            return {
+                "indices": [],
+                "market": {
+                    "up": 0,
+                    "down": 0
+                },
+                "sectors": {
+                    "top_gainers": [],
+                    "top_losers": [],
+                    "fund_flow": []
+                },
+                "kline": {
+                    "top3_gainers": [],
+                    "top3_losers": []
+                }
+            }

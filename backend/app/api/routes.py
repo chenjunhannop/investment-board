@@ -190,8 +190,20 @@ async def get_dashboard(request: Request):
     """
     svc = getattr(request.app.state, "dashboard", None)
     if svc is None:
-        return {"indices": [], "market": {"up": 0, "down": 0},
-                "sectors": {"top_gainers": [], "top_losers": [],
-                            "fund_flow": []},
-                "kline": {"top3_gainers": [], "top3_losers": []}}
+        return {
+            "indices": [],
+            "market": {
+                "up": 0,
+                "down": 0
+            },
+            "sectors": {
+                "top_gainers": [],
+                "top_losers": [],
+                "fund_flow": []
+            },
+            "kline": {
+                "top3_gainers": [],
+                "top3_losers": []
+            }
+        }
     return await svc.get_snapshot()
