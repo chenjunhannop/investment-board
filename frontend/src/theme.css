@@ -440,3 +440,78 @@ body {
   border-color: #ff6b6b;
   color: #ff6b6b;
 }
+
+/* 自选管理：文件夹工具栏 */
+.watchlist-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.watchlist-toolbar input,
+.watchlist-toolbar select {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: var(--font-data);
+}
+.watchlist-toolbar button {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.watchlist-toolbar button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 自选管理：文件夹区块 */
+.group {
+  margin-bottom: 14px;
+}
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.group-arrow {
+  color: var(--muted);
+  font-size: 12px;
+}
+.group-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+.group-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+.group-header .group-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+.group-header .group-actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.group-header .group-actions button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}

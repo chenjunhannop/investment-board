@@ -29,3 +29,16 @@ export type WsEvent =
   | { type: 'quotes'; data: Record<string, Quote> }
   | { type: 'news'; data: NewsItem[] }
   | { type: 'source_status'; data: Record<string, string> };
+
+export interface WatchItem {
+  code: string;
+  name: string;
+}
+export interface WatchGroup {
+  name: string;
+  stocks: WatchItem[];
+}
+export interface WatchlistData {
+  version: number;
+  groups: WatchGroup[];
+}
