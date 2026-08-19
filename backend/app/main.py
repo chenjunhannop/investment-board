@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.api.ws import ws_router
@@ -67,6 +68,10 @@ app.add_middleware(CORSMiddleware,
                    allow_headers=["*"])
 app.include_router(router, prefix="/api")
 app.include_router(ws_router)
+
+# 生产模式：托管前端构建产物（/api、/ws 路由优先，其余走静态）
+if settings.dist_dir.exists():
+    app.mount("/", StaticFiles(directory=str(settings.dist_dir), html=True), name="static")
 
 
 def main() -> None:
