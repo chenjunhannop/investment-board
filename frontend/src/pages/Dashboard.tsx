@@ -170,7 +170,7 @@ export default function Dashboard() {
               {dash?.kline.top3_gainers.map((k) => (
                 <div key={k.secid} className="kline-card">
                   <div className="kline-title" style={{ color: 'var(--up)' }}>
-                    {k.name} +{k.change_pct.toFixed(2)}%
+                    {k.name} {k.leader ? `·${k.leader}` : ''} +{k.change_pct.toFixed(2)}%
                   </div>
                   <div className="chart-wrap">
                     <SectorKlineChart name={k.name} klines={k.klines} up />
@@ -187,7 +187,7 @@ export default function Dashboard() {
               {dash?.kline.top3_losers.map((k) => (
                 <div key={k.secid} className="kline-card">
                   <div className="kline-title" style={{ color: 'var(--down)' }}>
-                    {k.name} {k.change_pct.toFixed(2)}%
+                    {k.name} {k.leader ? `·${k.leader}` : ''} {k.change_pct.toFixed(2)}%
                   </div>
                   <div className="chart-wrap">
                     <SectorKlineChart name={k.name} klines={k.klines} up={false} />

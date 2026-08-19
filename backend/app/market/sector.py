@@ -64,6 +64,9 @@ SINA_INDEX_URL = "https://hq.sinajs.cn/list=sh000001,sz399001,sz399006"
 SINA_INDEX_KLINE_URL = ("https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20x="
                         "/CN_MarketDataService.getKLineData?symbol={sym}"
                         "&scale=240&ma=no&datalen=30")
+SINA_STOCK_KLINE_URL = ("https://quotes.sina.cn/cn/api/jsonp_v2.php/var%20x="
+                        "/CN_MarketDataService.getKLineData?symbol={sym}"
+                        "&scale=240&ma=no&datalen=30")
 SECTOR_LIST_URL = ("https://push2.eastmoney.com/api/qt/clist/get"
                    "?pn=1&pz=500&po=1&np=1&fltt=2&invt=2&fid=f3"
                    "&fs=m:90+t:2&fields=f2,f3,f12,f14,f62,f104,f105,f128,f140")
@@ -381,7 +384,7 @@ async def fetch_sector_board(client: httpx.AsyncClient) -> dict:
 
 
 async def fetch_sector_kline(client: httpx.AsyncClient, secid: str) -> list[list]:
-    """抓取单个板块近 60 日K线.
+    """抓取单个板块近 60 日K线（东财接口，可能不稳定）.
 
     Args:
         client: 共享 httpx 客户端（保留签名兼容，实际用 curl 请求东财）.
@@ -395,4 +398,28 @@ async def fetch_sector_kline(client: httpx.AsyncClient, secid: str) -> list[list
         return parse_sector_kline(data)
     except Exception as e:
         logger.warning("抓取板块 %s K线失败: %s", secid, e)
+        return []
+
+
+async def fetch_stock_kline(client: httpx.AsyncClient, code: str) -> list[list]:
+    """抓取单只个股近 30 日K线（新浪数据源，稳定）.
+
+    用于板块走势降级：板块指数K线数据源（东财）不稳定时，展示板块领涨股走势.
+
+    Args:
+        client: 共享 httpx 客户端.
+        code: 6 位股票代码.
+
+    Returns:
+        日K列表；失败时返回空列表.
+    """
+    symbol = ("sh" if code.startswith(("6", "9")) else "sz") + code
+    try:
+        r = await client.get(SINA_STOCK_KLINE_URL.format(sym=symbol),
+                             headers={"Referer": "https://finance.sina.com.cn/"},
+                             timeout=8)
+        r.raise_for_status()
+        return parse_sina_index_kline(r.text)
+    except Exception as e:
+        logger.warning("抓取个股 %s K线失败: %s", code, e)
         return []

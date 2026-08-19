@@ -60,6 +60,7 @@ export interface SectorRow {
 export interface SectorKline {
   secid: string;
   name: string;
+  leader?: string;
   change_pct: number;
   klines: Array<Array<string | number>>;
 }

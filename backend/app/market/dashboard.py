@@ -40,19 +40,28 @@ class DashboardService:
             board = await sector.fetch_sector_board(self._client)
             top3_gainers = []
             for item in board["top_gainers"][:3]:
+                # 板块指数K线（东财）不稳定，降级用板块领涨股K线（新浪稳定）
+                klines = []
+                if item.get("leader_code"):
+                    klines = await sector.fetch_stock_kline(self._client, item["leader_code"])
                 top3_gainers.append({
                     "secid": item["secid"],
                     "name": item["name"],
+                    "leader": item.get("leader", ""),
                     "change_pct": item["change_pct"],
-                    "klines": await sector.fetch_sector_kline(self._client, item["secid"]),
+                    "klines": klines,
                 })
             top3_losers = []
             for item in board["top_losers"][:3]:
+                klines = []
+                if item.get("leader_code"):
+                    klines = await sector.fetch_stock_kline(self._client, item["leader_code"])
                 top3_losers.append({
                     "secid": item["secid"],
                     "name": item["name"],
+                    "leader": item.get("leader", ""),
                     "change_pct": item["change_pct"],
-                    "klines": await sector.fetch_sector_kline(self._client, item["secid"]),
+                    "klines": klines,
                 })
             snapshot = {
                 "indices": indices,

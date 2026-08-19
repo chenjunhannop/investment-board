@@ -32,5 +32,5 @@ export default function FundFlowChart({ data }: { data: SectorRow[] }) {
     });
     return () => chart.dispose();
   }, [data]);
-  return <div ref={ref} style={{ width: '100%', height: 260 }} />;
+  return <div ref={ref} style={{ width: '100%', height: '100%' }} />;
 }
