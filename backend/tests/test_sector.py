@@ -65,6 +65,7 @@ def test_parse_sector_board_filters_cold():
     r = parse_sector_board(data)
     names = [x["name"] for x in r["top_gainers"]]
     assert names == ["银行"]  # 氨纶被过滤，银行Ⅱ去重
+    assert r["top_gainers"][0]["change_pct"] == 90.0  # f3 不缩放（90 表示 90% 涨幅，测试数据）
     assert r["fund_flow"][0]["fund_flow"] == 100.0
     assert r["market"] == {"up": 75, "down": 0}
 

@@ -31,6 +31,9 @@ function IndexCard({ index }: { index: DashboardData['indices'][number] }) {
         {up ? '+' : ''}
         {index.change_pct.toFixed(2)}%
       </div>
+      <div className="index-ohlc">
+        今开 {index.open.toFixed(2)} · 昨收 {index.prev_close.toFixed(2)}
+      </div>
       <IndexMiniChart
         points={[index.prev_close, index.open, index.price]}
         color={up ? '#e5484d' : '#2e9e6b'}
@@ -154,23 +157,39 @@ export default function Dashboard() {
           </BigScreenPanel>
         </div>
         <BigScreenPanel title="重点板块走势（涨幅前三 / 跌幅前三）" className="bs-kline-panel">
-          <div className="kline-grid">
-            {dash?.kline.top3_gainers.map((k) => (
-              <div key={k.secid} className="kline-card">
-                <div className="kline-title" style={{ color: 'var(--up)' }}>
-                  {k.name} +{k.change_pct.toFixed(2)}%
+          <div className="kline-block">
+            <div className="kline-block-label" style={{ color: 'var(--up)' }}>
+              涨幅前三
+            </div>
+            <div className="kline-grid">
+              {dash?.kline.top3_gainers.map((k) => (
+                <div key={k.secid} className="kline-card">
+                  <div className="kline-title" style={{ color: 'var(--up)' }}>
+                    {k.name} +{k.change_pct.toFixed(2)}%
+                  </div>
+                  <div className="chart-wrap">
+                    <SectorKlineChart name={k.name} klines={k.klines} up />
+                  </div>
                 </div>
-                <SectorKlineChart name={k.name} klines={k.klines} up />
-              </div>
-            ))}
-            {dash?.kline.top3_losers.map((k) => (
-              <div key={k.secid} className="kline-card">
-                <div className="kline-title" style={{ color: 'var(--down)' }}>
-                  {k.name} {k.change_pct.toFixed(2)}%
+              ))}
+            </div>
+          </div>
+          <div className="kline-block">
+            <div className="kline-block-label" style={{ color: 'var(--down)' }}>
+              跌幅前三
+            </div>
+            <div className="kline-grid">
+              {dash?.kline.top3_losers.map((k) => (
+                <div key={k.secid} className="kline-card">
+                  <div className="kline-title" style={{ color: 'var(--down)' }}>
+                    {k.name} {k.change_pct.toFixed(2)}%
+                  </div>
+                  <div className="chart-wrap">
+                    <SectorKlineChart name={k.name} klines={k.klines} up={false} />
+                  </div>
                 </div>
-                <SectorKlineChart name={k.name} klines={k.klines} up={false} />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </BigScreenPanel>
         <div className="bs-right">
@@ -183,11 +202,22 @@ export default function Dashboard() {
       <div className="bs-bottom">
         <BigScreenPanel title="我的持仓" className="self-strip">
           <div className="holdings-grid">
-            {holdings.map((q) => (
-              <div key={q.code} className="cell">
-                <PriceCard q={q} />
-              </div>
-            ))}
+            {holdings.map((q) => {
+              const up = q.change >= 0;
+              const color = up ? 'var(--up)' : 'var(--down)';
+              return (
+                <div key={q.code} className="holdings-card">
+                  <div className="holdings-name">{q.name}</div>
+                  <div className="holdings-price" style={{ color }}>
+                    {q.price.toFixed(2)}
+                  </div>
+                  <div className="holdings-change" style={{ color }}>
+                    {up ? '+' : ''}
+                    {q.change_pct.toFixed(2)}%
+                  </div>
+                </div>
+              );
+            })}
           </div>
           {holdings.length === 0 && <div className="muted">暂无持仓行情</div>}
         </BigScreenPanel>

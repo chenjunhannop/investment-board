@@ -676,12 +676,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 顶部指标带 + 对称三分区 + 底部（严格等高） */
+/* 顶部指标带 + 对称三分区 + 底部（经典金融大屏） */
 .bs-indices {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 .bs-indices > * {
   display: flex;
@@ -690,18 +690,18 @@ body {
 .bs-main {
   display: flex;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   align-items: stretch;
 }
 .bs-left,
 .bs-right {
-  flex: 1.1;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 .bs-main > .bs-kline-panel {
-  flex: 2;
+  flex: 2.2; /* 中央主视觉突出 */
 }
 .bs-left .bs-panel,
 .bs-right .bs-panel {
@@ -715,11 +715,21 @@ body {
   flex: 1;
   min-height: 0;
 }
+/* 中央主视觉：涨幅/跌幅两大块，每块 3 张大 K线（300px） */
 .kline-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   flex: 1;
+}
+.kline-block + .kline-block {
+  margin-top: 12px;
+}
+.kline-block-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0 4px;
+  letter-spacing: 0.04em;
 }
 .kline-card {
   background: rgba(10, 15, 22, 0.7);
@@ -727,27 +737,34 @@ body {
   border-radius: 4px;
   padding: 8px;
 }
+.kline-card .chart-wrap {
+  height: 300px; /* 大图 */
+}
 .kline-title {
   font-family: var(--font-data);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 4px;
 }
 .sector-rank {
   font-size: 12px;
+  width: 100%;
 }
 .sector-rank td {
-  padding: 6px 6px;
+  padding: 8px 6px;
 }
 .rank-num {
   color: var(--muted);
   font-family: var(--font-data);
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 600;
 }
 .rank-pct {
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   text-align: right;
+  font-size: 18px;
+  font-weight: 600;
 }
 .rank-leader {
   text-align: right;
@@ -758,10 +775,35 @@ body {
   grid-template-columns: 3fr 2fr;
   gap: 12px;
 }
+/* 底部持仓精简卡 */
 .holdings-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
+}
+.holdings-card {
+  background: rgba(10, 15, 22, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.holdings-name {
+  font-size: 13px;
+  color: var(--muted);
+}
+.holdings-price {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  font-weight: 600;
+}
+.holdings-change {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
 }
 .news-feed {
   max-height: 320px;

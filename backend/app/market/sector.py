@@ -137,7 +137,7 @@ def parse_sector_board(data: dict) -> dict:
         seen[name] = {
             "secid": f"90.{it.get('f12', '')}",
             "name": raw_name,
-            "change_pct": _num(it.get("f3"), 100.0),
+            "change_pct": _num(it.get("f3")),  # f3 已是百分比（如 6.28 表示 6.28%），无需缩放
             "fund_flow": _num(it.get("f62")),
             "leader": it.get("f128", ""),
             "leader_code": it.get("f140", ""),
