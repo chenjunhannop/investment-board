@@ -515,3 +515,135 @@ body {
   color: var(--accent);
   border-color: var(--accent);
 }
+
+/* ============ 看板大屏布局 ============ */
+.bigscreen-top {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.index-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.index-name {
+  font-size: 13px;
+  color: var(--muted);
+}
+.index-price {
+  font-family: var(--font-data);
+  font-size: 26px;
+  font-weight: 600;
+  margin: 4px 0;
+}
+.index-change {
+  font-family: var(--font-data);
+  font-size: 13px;
+}
+.market-temp {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.temp-title {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.temp-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--border);
+  overflow: hidden;
+}
+.temp-up {
+  height: 100%;
+  background: var(--up);
+}
+.temp-nums {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-data);
+  font-size: 12px;
+}
+.bigscreen-mid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kline-area {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.kline-area h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.kline-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.kline-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+.kline-title {
+  font-family: var(--font-data);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.side-area {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sector-rank {
+  font-size: 12px;
+}
+.bigscreen-bottom {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 12px;
+}
+.self-strip .grid {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.news-feed {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.news-line {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.news-line:last-child {
+  border-bottom: none;
+}
+@media (max-width: 1100px) {
+  .bigscreen-top {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .bigscreen-mid {
+    grid-template-columns: 1fr;
+  }
+  .bigscreen-bottom {
+    grid-template-columns: 1fr;
+  }
+  .kline-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
