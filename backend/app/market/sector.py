@@ -1,15 +1,63 @@
 """东财板块/新浪指数数据服务（公开接口，含冷门过滤与异常兜底）.
 
 数据来源：新浪指数 hq.sinajs.cn、东方财富行业板块 clist/get 与板块日K kline/get。
+东财接口对 httpx TLS 指纹阻断，故用系统 curl 请求（curl 指纹被接受）。
 所有接口为只读公开数据，不涉及任何交易操作.
 """
 import asyncio
+import json
 import logging
 import re
+import subprocess
+import time
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+EM_HEADERS = ["Referer: https://quote.eastmoney.com/"]
+
+EM_HOSTS = ["push2.eastmoney.com", "push2delay.eastmoney.com", "push2his.eastmoney.com"]
+
+
+def _curl_json(url: str, request_timeout: float, retries: int = 4) -> dict:
+    """用系统 curl 请求东财接口，带多域名 fallback（规避限流/断开）.
+
+    Args:
+        url: 东财接口地址（host 会被逐个替换尝试）.
+        request_timeout: 单次请求超时秒数.
+        retries: 每个域名重试次数.
+
+    Returns:
+        接口返回的 JSON 字典.
+
+    Raises:
+        RuntimeError: 全部域名重试耗尽仍失败时抛出.
+    """
+    last: Exception | None = None
+    for host in EM_HOSTS:
+        # 替换 URL 中的 host（东财多域名同构，备选域名可绕过临时限流）
+        from urllib.parse import urlsplit, urlunsplit
+        parts = urlsplit(url)
+        alt_url = urlunsplit((parts.scheme, host, parts.path, parts.query, parts.fragment))
+        for attempt in range(retries):
+            try:
+                r = subprocess.run([
+                    "curl", "-s", "--max-time",
+                    str(int(request_timeout)), "-H", "Referer: https://quote.eastmoney.com/",
+                    alt_url
+                ],
+                                   capture_output=True,
+                                   text=True,
+                                   timeout=request_timeout + 3)
+                if r.returncode == 0 and r.stdout.strip():
+                    return json.loads(r.stdout)
+                last = RuntimeError(f"curl {host} exit {r.returncode}")
+            except Exception as e:
+                last = e
+            time.sleep(0.5 * (attempt + 1))
+    raise last if last else RuntimeError("curl request failed")
+
 
 INDEX_SECIDS = ["1.000001", "0.399001", "0.399006"]  # 上证/深证/创业板（东财 secid，备用）
 SINA_INDEX_URL = "https://hq.sinajs.cn/list=sh000001,sz399001,sz399006"
@@ -25,14 +73,14 @@ MIN_STOCKS = 10  # 冷门过滤：板块含股数下限
 async def _get_with_retry(client: httpx.AsyncClient,
                           url: str,
                           request_timeout: float,
-                          retries: int = 3) -> httpx.Response:
+                          retries: int = 5) -> httpx.Response:
     """带重试的 GET 请求，缓解东财对复用连接偶发断开的抖动.
 
     Args:
         client: 共享 httpx 客户端.
         url: 请求地址.
         request_timeout: 单次请求超时秒数.
-        retries: 重试次数（默认 3）.
+        retries: 重试次数（默认 5，东财偶发断开较多）.
 
     Returns:
         成功的 httpx.Response.
@@ -261,15 +309,14 @@ async def fetch_sector_board(client: httpx.AsyncClient) -> dict:
     """抓取行业板块排行（含资金/家数/领涨股，冷门过滤）.
 
     Args:
-        client: 共享 httpx 客户端.
+        client: 共享 httpx 客户端（保留签名兼容，实际用 curl 请求东财）.
 
     Returns:
         parse_sector_board 结果；失败时返回空结构.
     """
     try:
-        r = await _get_with_retry(client, SECTOR_LIST_URL, request_timeout=10)
-        r.raise_for_status()
-        return parse_sector_board(r.json())
+        data = await asyncio.to_thread(_curl_json, SECTOR_LIST_URL, 10.0)
+        return parse_sector_board(data)
     except Exception as e:
         logger.warning("抓取板块排行失败: %s", e)
         return {
@@ -287,16 +334,15 @@ async def fetch_sector_kline(client: httpx.AsyncClient, secid: str) -> list[list
     """抓取单个板块近 60 日K线.
 
     Args:
-        client: 共享 httpx 客户端.
+        client: 共享 httpx 客户端（保留签名兼容，实际用 curl 请求东财）.
         secid: 东财板块 secid，如 "90.BK1036".
 
     Returns:
         日K列表；失败时返回空列表.
     """
     try:
-        r = await _get_with_retry(client, f"{KLINE_URL}&secid={secid}", request_timeout=8)
-        r.raise_for_status()
-        return parse_sector_kline(r.json())
+        data = await asyncio.to_thread(_curl_json, f"{KLINE_URL}&secid={secid}", 8.0)
+        return parse_sector_kline(data)
     except Exception as e:
         logger.warning("抓取板块 %s K线失败: %s", secid, e)
         return []
