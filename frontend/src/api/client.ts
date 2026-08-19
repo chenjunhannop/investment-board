@@ -35,3 +35,41 @@ export const removeStock = (group: string, code: string) =>
   json<WatchlistData>(`/api/watchlist/stocks/${encodeURIComponent(group)}/${code}`, {
     method: 'DELETE',
   });
+
+export interface IndexSnapshot {
+  code: string;
+  name: string;
+  price: number;
+  change: number;
+  change_pct: number;
+  high: number;
+  low: number;
+  open: number;
+  prev_close: number;
+}
+export interface SectorRow {
+  secid: string;
+  name: string;
+  change_pct: number;
+  fund_flow: number;
+  leader: string;
+  leader_code: string;
+  stocks: number;
+}
+export interface SectorKline {
+  secid: string;
+  name: string;
+  change_pct: number;
+  klines: Array<Array<string | number>>;
+}
+export interface DashboardData {
+  indices: IndexSnapshot[];
+  market: { up: number; down: number };
+  sectors: {
+    top_gainers: SectorRow[];
+    top_losers: SectorRow[];
+    fund_flow: SectorRow[];
+  };
+  kline: { top3_gainers: SectorKline[]; top3_losers: SectorKline[] };
+}
+export const getDashboard = () => json<DashboardData>('/api/dashboard');
