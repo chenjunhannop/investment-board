@@ -1,0 +1,12 @@
+services:
+  investment-board:
+    build: .
+    container_name: investment-board
+    ports:
+      - "127.0.0.1:8210:8210"  # 仅本地访问，隐私保持
+    volumes:
+      - investment-data:/data
+    restart: unless-stopped
+
+volumes:
+  investment-data:
